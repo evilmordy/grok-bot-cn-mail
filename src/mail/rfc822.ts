@@ -47,8 +47,21 @@ function encodeHeader(value: string): string {
   return `=?UTF-8?B?${Buffer.from(value, "utf8").toString("base64")}?=`;
 }
 
+function assertHeaderAtom(value: string, field: string): void {
+  if (/[\r\n\0]/.test(value)) {
+    throw new Error(`${field} contains CR/LF`);
+  }
+}
+
 export function buildRfc822(input: Rfc822Input): string {
   assertComposeBody(input.body);
+  assertHeaderAtom(input.from, "From");
+  for (const addr of input.to) assertHeaderAtom(addr, "To");
+  for (const addr of input.cc ?? []) assertHeaderAtom(addr, "Cc");
+  assertHeaderAtom(input.subject, "Subject");
+  assertHeaderAtom(input.messageId, "Message-ID");
+  if (input.inReplyTo) assertHeaderAtom(input.inReplyTo, "In-Reply-To");
+  if (input.references) assertHeaderAtom(input.references, "References");
   const headers = [
     `From: ${input.from}`,
     `To: ${input.to.join(", ")}`,

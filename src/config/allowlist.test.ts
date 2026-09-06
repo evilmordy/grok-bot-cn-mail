@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  assertLooksLikeAddress,
   assertRecipientsAllowed,
   isAddressAllowed,
   parseSendAllowlist,
@@ -21,5 +22,16 @@ describe("send allowlist", () => {
     expect(() => assertRecipientsAllowed(["hacker@evil.com"], ["me@qq.com"])).toThrow(
       /not on send allowlist/,
     );
+  });
+});
+
+describe("assertLooksLikeAddress", () => {
+  it("accepts a plain address and an angle-bracket form", () => {
+    expect(() => assertLooksLikeAddress("me@qq.com")).not.toThrow();
+    expect(() => assertLooksLikeAddress("Boss <boss@example.com>")).not.toThrow();
+  });
+
+  it("rejects CR/LF header injection", () => {
+    expect(() => assertLooksLikeAddress("me@qq.com\r\nBcc: evil@evil.com")).toThrow(/invalid recipient/);
   });
 });

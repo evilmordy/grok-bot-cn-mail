@@ -22,4 +22,16 @@ describe("rfc822", () => {
     expect(replySubject("Hello")).toBe("Re: Hello");
     expect(forwardSubject("Hi")).toBe("Fwd: Hi");
   });
+
+  it("rejects CR/LF in header fields", () => {
+    expect(() =>
+      buildRfc822({
+        from: "me@qq.com",
+        to: ["boss@example.com\r\nBcc: evil@evil.com"],
+        subject: "hi",
+        body: "ok",
+        messageId: "<id@qq.com>",
+      }),
+    ).toThrow(/To contains CR\/LF/);
+  });
 });

@@ -44,9 +44,15 @@ export function parseAddressList(raw: string | undefined): string[] {
     .filter(Boolean);
 }
 
+/** Local@domain, no lookahead (MCP schemas must not use z.string().email()). */
+const ADDR = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+
 export function assertLooksLikeAddress(address: string): void {
+  if (/[\r\n\0]/.test(address)) {
+    throw new Error(`invalid recipient ${address}`);
+  }
   const addr = normalizeAddress(address);
-  if (!addr.includes("@") || addr.startsWith("@") || addr.endsWith("@")) {
+  if (!ADDR.test(addr)) {
     throw new Error(`invalid recipient ${address}`);
   }
 }
