@@ -26,7 +26,7 @@ node dist/index.js config set-mode send --allow you@qq.com
 node dist/index.js setup
 ```
 
-服务器强制：回复 To 取自原信；转发目标必须你指定且在白名单；无 BCC；滚动一小时最多 5 封（记在磁盘上）；验证码信不能读、回、转。打开 `allow_sensitive` 要确认卡（或本机 `config allow-sensitive on` / 手改 JSON）。SMTP 确认卡用 **Accept 发送 / Decline 取消**（不是聊天里的「已允许一次」）。没有确认卡会返回 `CONFIRMATION_UNSUPPORTED`，不会发。不要用 `QQCONNECT_SEND_UNSAFE_NO_CONFIRM` 绕过，除非在跑本仓库测试。
+服务器强制：回复 To 取自原信；转发目标必须你指定且在白名单；无 BCC；滚动一小时最多 5 封（记在磁盘上）；验证码信不能读、回、转。打开 `allow_sensitive` 要确认卡（或本机 `config allow-sensitive on` / 手改 JSON）。SMTP 确认卡是 MCP elicitation（Accept/Decline），不是 Auto-review 的「已允许一次 / 始终允许」。没有确认卡会返回 `CONFIRMATION_UNSUPPORTED`，不会发。不要用 `QQCONNECT_SEND_UNSAFE_NO_CONFIRM` 绕过，除非在跑本仓库测试。
 
 `pnpm build` 后新开会话（或 `/mcps` 对短名按 `r`）。改档位不用 build。
 

@@ -88,7 +88,7 @@ function collect(): Map<string, (a: Record<string, unknown>, extra?: ToolExtra) 
 }
 
 const yes: ToolExtra = {
-  elicitInput: async () => ({ action: "accept", content: { confirm: true } }),
+  inputResponses: { confirm: { action: "accept", content: {} } },
 };
 
 afterEach(() => {
@@ -205,6 +205,21 @@ describe("registerMailTools", () => {
     expect(JSON.parse(sent.content[0].text).to).toEqual(["boss@example.com"]);
   });
 
+  it("returns input_required on the first send hop instead of send cancelled", async () => {
+    overrideSettingsForTest({
+      mode: "send",
+      send_allowlist: ["you@qq.com"],
+      allow_sensitive: false,
+    });
+    const calls = collect();
+    const r = (await calls.get("send_email")!(
+      { account_id: "qq", to: "you@qq.com", subject: "hi", body: "hello" },
+      {},
+    )) as { resultType?: string; isError?: boolean };
+    expect(r.isError).toBeFalsy();
+    expect(r.resultType).toBe("input_required");
+  });
+
   it("treats elicitation Accept as confirmation even without confirm:true", async () => {
     overrideSettingsForTest({
       mode: "send",
@@ -214,7 +229,7 @@ describe("registerMailTools", () => {
     const calls = collect();
     const sent = (await calls.get("send_email")!(
       { account_id: "qq", to: "you@qq.com", subject: "hi", body: "hello" },
-      { elicitInput: async () => ({ action: "accept", content: {} }) },
+      { inputResponses: { confirm: { action: "accept", content: {} } } },
     )) as { isError?: boolean; content: Array<{ text: string }> };
     expect(sent.isError).toBeFalsy();
     expect(JSON.parse(sent.content[0].text).to).toEqual(["you@qq.com"]);
@@ -229,7 +244,7 @@ describe("registerMailTools", () => {
     const calls = collect();
     const sent = (await calls.get("send_email")!(
       { account_id: "qq", to: "you@qq.com", subject: "hi", body: "hello" },
-      { elicitInput: async () => ({ action: "accept", content: { confirm: false } }) },
+      { inputResponses: { confirm: { action: "accept", content: { confirm: false } } } },
     )) as { isError?: boolean; content: Array<{ text: string }> };
     expect(sent.isError).toBeFalsy();
     expect(JSON.parse(sent.content[0].text).to).toEqual(["you@qq.com"]);
@@ -327,7 +342,7 @@ describe("registerMailTools", () => {
 
     const declined = (await calls.get("unbind_mailbox")!(
       { account_id: "qq" },
-      { elicitInput: async () => ({ action: "decline" }) },
+      { inputResponses: { confirm: { action: "decline" } } },
     )) as { isError?: boolean };
     expect(declined.isError).toBe(true);
     const still = (await calls.get("list_accounts")!({})) as { content: Array<{ text: string }> };
@@ -371,7 +386,7 @@ describe("registerMailTools", () => {
     const calls = collect();
     const declined = (await calls.get("set_settings")!(
       { allow_sensitive: true },
-      { elicitInput: async () => ({ action: "decline" }) },
+      { inputResponses: { confirm: { action: "decline" } } },
     )) as { isError?: boolean };
     expect(declined.isError).toBe(true);
     expect(JSON.parse((await calls.get("get_settings")!({}) as { content: Array<{ text: string }> }).content[0].text).allow_sensitive).toBe(false);

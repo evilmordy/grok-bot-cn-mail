@@ -33,14 +33,6 @@ export function createMailServer(backend: MailBackend): McpServer {
       },
       async (args: Record<string, unknown>, extra: ServerContext) => {
         const result = await handler(args, {
-          elicitInput: ((params: {
-            message: string;
-            requestedSchema: {
-              type: "object";
-              properties: Record<string, unknown>;
-              required?: string[];
-            };
-          }) => extra.mcpReq.elicitInput(params as never)) as never,
           inputResponses: extra.mcpReq.inputResponses,
         });
         return result as never;

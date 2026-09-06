@@ -47,14 +47,6 @@ export type ToolResult = {
 };
 
 export type ToolExtra = {
-  elicitInput?: (params: {
-    message: string;
-    requestedSchema: {
-      type: "object";
-      properties: Record<string, unknown>;
-      required?: string[];
-    };
-  }) => Promise<{ action?: string; content?: Record<string, unknown> }>;
   inputResponses?: Record<string, unknown>;
 };
 
@@ -197,15 +189,13 @@ function confirmMessage(preview: ConfirmPreview): string {
     .join("\n");
 }
 
-/** Grok's card is Accept vs Decline. Ignore form booleans (unchecked defaults to false and used to abort sends). */
-function elicitationDecision(result: { action?: string }): "yes" | "no" | "retry" {
-  const action = (result.action ?? "").toLowerCase();
-  if (action === "decline") return "no";
-  if (action === "cancel") return "retry";
-  if (action === "accept" || action === "accepted") return "yes";
-  return "retry";
-}
-
+/**
+ * Do not call elicitInput inside the tool handler. Grok Bot Auto-review
+ * ("允许一次") is permission for send_email, not the MCP card. Nested
+ * elicitation/create is declined and became "send cancelled".
+ * Return inputRequired; the SDK 2025 shim (or 2026 retry) shows the card
+ * and re-enters with inputResponses.
+ */
 async function confirmSend(
   extra: ToolExtra | undefined,
   preview: ConfirmPreview,
@@ -220,39 +210,19 @@ async function confirmSend(
 
   const view = inputResponse(extra.inputResponses, "confirm");
   if (view.kind === "elicit") {
-    const decision = elicitationDecision(view);
-    if (decision === "yes") return undefined;
-    if (decision === "no") return fail("send cancelled");
-  }
-
-  const params = {
-    message: confirmMessage(preview),
-    requestedSchema: confirmSchema(),
-  };
-
-  if (extra.elicitInput) {
-    try {
-      const result = await extra.elicitInput(params);
-      const decision = elicitationDecision(result);
-      if (decision === "yes") return undefined;
-      if (decision === "no") return fail("send cancelled");
-      // cancel / empty → 2026 inputRequired round-trip
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (/2026-07-28|inputRequired|input_required|deprecated/i.test(msg)) {
-        // fall through
-      } else if (/elicit|capability|not support/i.test(msg)) {
-        return fail(unsupported);
-      } else {
-        throw err;
-      }
-    }
+    const action = view.action.toLowerCase();
+    if (action === "accept") return undefined;
+    if (action === "decline") return fail("send cancelled (elicit action=decline)");
+    if (action === "cancel") return fail("send cancelled (elicit action=cancel)");
   }
 
   try {
     return inputRequired({
       inputRequests: {
-        confirm: inputRequired.elicit(params),
+        confirm: inputRequired.elicit({
+          message: confirmMessage(preview),
+          requestedSchema: confirmSchema(),
+        }),
       },
     });
   } catch (err) {
