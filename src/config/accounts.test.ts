@@ -1,0 +1,77 @@
+import { afterEach, describe, expect, it } from "vitest";
+import { loadAccounts } from "./accounts.js";
+
+const KEYS = [
+  "MAIL_USER",
+  "MAIL_AUTH_CODE",
+  "MAIL_USER_2",
+  "MAIL_AUTH_CODE_2",
+  "MAIL_ACCOUNT_ID_2",
+  "MAIL_HOST",
+  "MAIL_SMTP_HOST",
+  "QQCONNECT_ACCOUNTS",
+  "QQCONNECT_IMAP_ID",
+];
+
+afterEach(() => {
+  for (const k of KEYS) delete process.env[k];
+});
+
+describe("loadAccounts", () => {
+  it("builds a QQ account from MAIL_USER", () => {
+    process.env.MAIL_USER = "me@qq.com";
+    process.env.MAIL_AUTH_CODE = "abcdefghijklmnop";
+    const [acct] = loadAccounts();
+    expect(acct.host).toBe("imap.qq.com");
+    expect(acct.sendImapId).toBe(true);
+    expect(acct.address).toBe("me@qq.com");
+    expect(acct.smtpHost).toBe("smtp.qq.com");
+    expect(acct.smtpPort).toBe(465);
+  });
+
+  it("rejects private hosts", () => {
+    process.env.MAIL_USER = "me@example.com";
+    process.env.MAIL_AUTH_CODE = "abcdefghijklmnop";
+    process.env.MAIL_HOST = "169.254.169.254";
+    expect(() => loadAccounts()).toThrow(/not allowed/);
+  });
+
+  it("rejects private SMTP hosts", () => {
+    process.env.MAIL_USER = "me@example.com";
+    process.env.MAIL_AUTH_CODE = "abcdefghijklmnop";
+    process.env.MAIL_HOST = "imap.example.com";
+    process.env.MAIL_SMTP_HOST = "192.168.0.9";
+    expect(() => loadAccounts()).toThrow(/not allowed/);
+  });
+
+  it("reads JSON accounts with authCodeEnv", () => {
+    process.env.QQ_CODE = "sixteencharscode1";
+    process.env.QQCONNECT_ACCOUNTS = JSON.stringify([
+      { id: "work", address: "a@163.com", authCodeEnv: "QQ_CODE" },
+    ]);
+    const [acct] = loadAccounts();
+    expect(acct.id).toBe("work");
+    expect(acct.host).toBe("imap.163.com");
+    expect(acct.authCode).toBe("sixteencharscode1");
+    delete process.env.QQ_CODE;
+  });
+
+  it("rejects inline authCode in QQCONNECT_ACCOUNTS JSON", () => {
+    process.env.QQCONNECT_ACCOUNTS = JSON.stringify([
+      { id: "qq", address: "a@qq.com", authCode: "abcdefghijklmnop" },
+    ]);
+    expect(() => loadAccounts()).toThrow(/authCodeEnv/);
+  });
+
+  it("loads a second mailbox from MAIL_USER_2", () => {
+    process.env.MAIL_USER = "me@qq.com";
+    process.env.MAIL_AUTH_CODE = "abcdefghijklmnop";
+    process.env.MAIL_USER_2 = "work@163.com";
+    process.env.MAIL_AUTH_CODE_2 = "sixteencharscode1";
+    process.env.MAIL_ACCOUNT_ID_2 = "work";
+    const accts = loadAccounts();
+    expect(accts.map((a) => a.id)).toEqual(["default", "work"]);
+    expect(accts[1]?.host).toBe("imap.163.com");
+    expect(accts[1]?.smtpHost).toBe("smtp.163.com");
+  });
+});

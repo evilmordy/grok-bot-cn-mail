@@ -1,0 +1,53 @@
+{
+  "name": "qqconnect",
+  "version": "0.1.0",
+  "description": "Read-only IMAP MCP server so Grok Bot can search and read QQ / 163 / 126 / Tencent exmail (and any IMAP mailbox).",
+  "type": "module",
+  "packageManager": "pnpm@11.8.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "qqconnect": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist",
+    "plugin",
+    "skills",
+    "SECURITY.md",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "pnpm build && node dist/index.js",
+    "check": "pnpm build && node dist/index.js --check",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "audit": "pnpm audit --audit-level=high"
+  },
+  "keywords": [
+    "mcp",
+    "imap",
+    "qq-mail",
+    "grok-bot",
+    "email"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/server": "^2.0.0",
+    "html-to-text": "^10.0.1",
+    "imapflow": "^1.7.8",
+    "nodemailer": "^10.0.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/html-to-text": "^9.0.4",
+    "@types/node": "^24.5.2",
+    "@types/nodemailer": "^8.0.1",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
