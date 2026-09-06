@@ -136,7 +136,7 @@ export function modeHint(need: "draft" | "send"): string {
 
 export function settingsGuide(settings: Settings = getSettings()): string {
   if (settings.mode === "read") {
-    return "请先用一句话请用户选择档位：①只读（默认，只搜和看）②草稿（推荐要写信时，进草稿箱，网页里自己发送）③发送（SMTP 真发，必须用户指定白名单，且会弹出确认）。用户选定后立刻 set_settings。不要问授权码或网页密码。用户若明确只要看信，可直接搜索。";
+    return "默认只读，可以直接 search_messages / get_message。不要问授权码。用户要写信时再问是否打开草稿（推荐，网页里自己发送）。不要主动推销 SMTP 发送。";
   }
   if (settings.mode === "draft") {
     return "当前是草稿档：可以 save_draft / save_reply_draft。真发信需用户再要求打开发送并给出白名单。";

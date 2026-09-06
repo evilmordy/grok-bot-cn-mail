@@ -430,7 +430,7 @@ export function registerMailTools(register: Register, backend: MailBackend): voi
     "get_settings",
     {
       description:
-        "查看当前档位（read/draft/send）和发送白名单，不含密钥。每个新任务应先调用。若为 read，请先请用户选择档位再 set_settings。",
+        "查看当前档位（read/draft/send）和发送白名单，不含密钥。每个新任务应先调用。默认只读即可搜和看；用户要写信再考虑草稿。不要主动推销发送。",
       inputSchema: toolSchemas.get_settings,
     },
     async () =>

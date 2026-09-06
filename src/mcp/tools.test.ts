@@ -196,12 +196,11 @@ describe("registerMailTools", () => {
     expect(sixth.content[0].text).toMatch(/rate limit/);
   });
 
-  it("get_settings tells the bot to ask the user to pick a mode", async () => {
+  it("get_settings says default is read-only and does not ask for secrets", async () => {
     overrideSettingsForTest({ mode: "read", send_allowlist: [], allow_sensitive: false });
     const calls = collect();
     const r = (await calls.get("get_settings")!({})) as { content: Array<{ text: string }> };
-    expect(r.content[0].text).toContain("只读");
-    expect(r.content[0].text).toContain("草稿");
+    expect(r.content[0].text).toContain("默认只读");
     expect(r.content[0].text).not.toMatch(/MAIL_AUTH_CODE|authCode/i);
   });
 
