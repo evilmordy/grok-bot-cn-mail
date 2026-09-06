@@ -1,4 +1,4 @@
-import { acceptedContent, inputRequired } from "@modelcontextprotocol/server";
+import { inputRequired, inputResponse } from "@modelcontextprotocol/server";
 import * as z from "zod";
 import { assertRecipientsAllowed, parseSendAllowlist } from "../config/allowlist.js";
 import {
@@ -204,6 +204,22 @@ function confirmMessage(preview: ConfirmPreview): string {
     .join("\n");
 }
 
+/** Map an elicitation result. Accept = yes unless confirm is explicitly false. cancel = try the other protocol path. */
+function elicitationDecision(result: {
+  action?: string;
+  content?: Record<string, unknown>;
+}): "yes" | "no" | "retry" {
+  const action = (result.action ?? "").toLowerCase();
+  if (action === "decline") return "no";
+  if (action === "cancel") return "retry";
+  if (action === "accept" || action === "accepted") {
+    return result.content?.confirm === false ? "no" : "yes";
+  }
+  if (result.content?.confirm === true) return "yes";
+  if (result.content?.confirm === false) return "no";
+  return "retry";
+}
+
 async function confirmSend(
   extra: ToolExtra | undefined,
   preview: ConfirmPreview,
@@ -216,28 +232,29 @@ async function confirmSend(
     return fail(unsupported);
   }
 
-  const accepted = acceptedContent<{ confirm: boolean }>(extra.inputResponses, "confirm");
-  if (accepted) {
-    return accepted.confirm === true ? undefined : fail("send cancelled");
-  }
-  const prior = extra?.inputResponses?.confirm as { action?: string } | undefined;
-  if (prior?.action === "decline" || prior?.action === "cancel") {
-    return fail("send cancelled");
+  const view = inputResponse(extra.inputResponses, "confirm");
+  if (view.kind === "elicit") {
+    const decision = elicitationDecision(view);
+    if (decision === "yes") return undefined;
+    if (decision === "no") return fail("send cancelled");
   }
 
-  if (extra?.elicitInput) {
+  const params = {
+    message: confirmMessage(preview),
+    requestedSchema: confirmSchema(),
+  };
+
+  if (extra.elicitInput) {
     try {
-      const result = await extra.elicitInput({
-        message: confirmMessage(preview),
-        requestedSchema: confirmSchema(),
-      });
-      if (result.action === "decline" || result.action === "cancel") return fail("send cancelled");
-      if (result.action === "accept" && result.content?.confirm === true) return undefined;
-      return fail("send cancelled");
+      const result = await extra.elicitInput(params);
+      const decision = elicitationDecision(result);
+      if (decision === "yes") return undefined;
+      if (decision === "no") return fail("send cancelled");
+      // cancel / empty → 2026 inputRequired round-trip
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (/2026-07-28|inputRequired|input_required|deprecated/i.test(msg)) {
-        // fall through to multi-round-trip elicitation
+        // fall through
       } else if (/elicit|capability|not support/i.test(msg)) {
         return fail(unsupported);
       } else {
@@ -249,10 +266,7 @@ async function confirmSend(
   try {
     return inputRequired({
       inputRequests: {
-        confirm: inputRequired.elicit({
-          message: confirmMessage(preview),
-          requestedSchema: confirmSchema(),
-        }),
+        confirm: inputRequired.elicit(params),
       },
     });
   } catch (err) {

@@ -205,6 +205,36 @@ describe("registerMailTools", () => {
     expect(JSON.parse(sent.content[0].text).to).toEqual(["boss@example.com"]);
   });
 
+  it("treats elicitation Accept as confirmation even without confirm:true", async () => {
+    overrideSettingsForTest({
+      mode: "send",
+      send_allowlist: ["you@qq.com"],
+      allow_sensitive: false,
+    });
+    const calls = collect();
+    const sent = (await calls.get("send_email")!(
+      { account_id: "qq", to: "you@qq.com", subject: "hi", body: "hello" },
+      { elicitInput: async () => ({ action: "accept", content: {} }) },
+    )) as { isError?: boolean; content: Array<{ text: string }> };
+    expect(sent.isError).toBeFalsy();
+    expect(JSON.parse(sent.content[0].text).to).toEqual(["you@qq.com"]);
+  });
+
+  it("cancels when the user accepts the card but sets confirm false", async () => {
+    overrideSettingsForTest({
+      mode: "send",
+      send_allowlist: ["you@qq.com"],
+      allow_sensitive: false,
+    });
+    const calls = collect();
+    const denied = (await calls.get("send_email")!(
+      { account_id: "qq", to: "you@qq.com", subject: "hi", body: "hello" },
+      { elicitInput: async () => ({ action: "accept", content: { confirm: false } }) },
+    )) as { isError?: boolean; content: Array<{ text: string }> };
+    expect(denied.isError).toBe(true);
+    expect(denied.content[0].text).toMatch(/cancelled/);
+  });
+
   it("sends after mode send, allowlist, and elicitation", async () => {
     overrideSettingsForTest({
       mode: "send",

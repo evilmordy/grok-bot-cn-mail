@@ -13,6 +13,7 @@
 - 加邮箱：`list_accounts` 给出下一槽变量名；Grok Bot 走密钥框，禁止改仓库或启动命令。`.env` 变更在下次 list 时热加载，不必杀 MCP。
 - 解绑邮箱：`unbind_mailbox` + 确认卡；不删服务器邮件。Grok Bot 还需在密钥框删变量并重载；本机可改 `.env` 或 `config unbind`。
 - 更新：`get_settings.server.needs_restart` 表示磁盘上的脚本已变，停再开 qqconnect，不要当邮箱故障排查。
+- 发信确认卡：Accept 即确认（不必再勾 confirm）；宿主 cancel 时改走 inputRequired，避免 Grok Bot 秒取消。
 
 ## 0.1.0
 
