@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { logError } from "../log.js";
 import { parseSendAllowlist } from "./allowlist.js";
 
 export type ConnectMode = "read" | "draft" | "send";
@@ -79,7 +80,8 @@ export function getSettings(): Settings {
   let parsed: unknown = {};
   try {
     parsed = JSON.parse(readFileSync(file, "utf8"));
-  } catch {
+  } catch (err) {
+    logError("settings.invalid_json", err, { file });
     parsed = {};
   }
   const value = parseSettings(parsed);

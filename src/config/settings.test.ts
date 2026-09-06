@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { getSettings, overrideSettingsForTest, saveSettings, settingsPath } from "./settings.js";
 
 afterEach(() => {
@@ -45,6 +45,19 @@ describe("settings", () => {
     );
     const moduleUrl = pathToFileURL(join(root, "dist", "config", "settings.js")).href;
     expect(settingsPath(moduleUrl)).toBe(legacy);
+  });
+
+  it("logs and falls back to read when the file is not JSON", () => {
+    const file = join(mkdtempSync(join(tmpdir(), "qq-")), ".grok-bot-cn-mail.json");
+    process.env.QQCONNECT_CONFIG = file;
+    writeFileSync(file, "{not json", "utf8");
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    try {
+      expect(getSettings()).toEqual({ mode: "read", send_allowlist: [], allow_sensitive: false });
+      expect(spy.mock.calls.map((c) => String(c[0])).join("")).toMatch(/settings.invalid_json/);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("writes .grok-bot-cn-mail.json when no settings file exists", () => {
