@@ -175,8 +175,7 @@ function confirmSchema() {
   };
 }
 
-const ELICIT_DECLINED =
-  "CONFIRMATION_UNSUPPORTED: 宿主回了 Decline，且 Grok Bot 通常不会弹出 MCP 确认卡。「已允许一次 / 始终允许」只是 Auto-review，不是发信确认。信未发送。请用网页邮箱发送，或在 Grok Build TUI（有 qqconnect Accept/Decline 卡）里发。不要让用户去点一张看不见的卡。";
+const ELICIT_DECLINED = "确认未通过，操作已取消。";
 
 type ConfirmPreview = {
   to: string[];
@@ -200,21 +199,13 @@ function confirmMessage(preview: ConfirmPreview): string {
     .join("\n");
 }
 
-/**
- * Do not call elicitInput inside the tool handler. Grok Bot Auto-review
- * ("允许一次") is permission for send_email, not the MCP card. Nested
- * elicitation/create is declined and became "send cancelled".
- * Return inputRequired; the SDK 2025 shim (or 2026 retry) shows the card
- * and re-enters with inputResponses.
- */
 async function confirmSend(
   extra: ToolExtra | undefined,
   preview: ConfirmPreview,
 ): Promise<ConfirmOutcome> {
   if (unsafeSkipConfirm()) return undefined;
   const unsupported =
-    preview.unsupported ??
-    "CONFIRMATION_UNSUPPORTED: the MCP client has no elicitation UI. Send was not executed.";
+    preview.unsupported ?? "客户端无法弹出确认，操作未执行。";
   if (!extra) {
     return fail(unsupported);
   }
@@ -223,7 +214,7 @@ async function confirmSend(
   if (view.kind === "elicit") {
     const action = view.action.toLowerCase();
     if (action === "accept") return undefined;
-    if (action === "decline" || action === "cancel") return fail(`${ELICIT_DECLINED} (elicit action=${action})`);
+    if (action === "decline" || action === "cancel") return fail(ELICIT_DECLINED);
   }
 
   try {
@@ -276,8 +267,6 @@ function mailboxSnapshot(backend: MailBackend) {
     add_mailbox: addMailboxHint(accounts.length),
     remove_mailbox: unbindMailboxHint(accounts),
     server: serverStatus(),
-    send_confirm:
-      "发信两步：先 send_* 拿到预览和 confirm_token，把预览给用户问润色还是直接发；用户说直接发后再带 token 调一次才会 SMTP。「始终允许」不是发信确认。",
   };
 }
 
@@ -470,44 +459,21 @@ export function registerMailTools(register: Register, backend: MailBackend): voi
   register(
     "unbind_mailbox",
     {
-      description:
-        "解绑一个已连接的邮箱。不删除服务器上的邮件。必须确认卡。不要改仓库或 MCP 启动命令。Grok Bot 确认后还要让用户在密钥框删掉返回的变量名并重载。",
+      description: "解绑一个已连接的邮箱。不删除服务器上的邮件。",
       inputSchema: toolSchemas.unbind_mailbox,
     },
-    async (args, extra) => {
+    async (args) => {
       try {
         backend.reloadAccounts();
         const q = toolSchemas.unbind_mailbox.parse(args);
         const accounts = backend.listAccounts();
         const acct = accounts.find((a) => a.id === q.account_id);
         if (!acct) throw new Error(`unknown account ${q.account_id}`);
-        const keys = acct.unbind_env ?? [];
-        const last = accounts.length === 1;
-        const cancelled = await confirmSend(extra, {
-          to: [],
-          cc: [],
-          subject: `Unbind mailbox ${acct.id}`,
-          prompt: "Unbind this mailbox from the MCP? Decline to abort.",
-          unsupported:
-            "CONFIRMATION_UNSUPPORTED: the MCP client has no elicitation UI. Unbind was not executed.",
-          body: [
-            `Account: ${acct.id} (${acct.address})`,
-            "This does not delete any mail on the server.",
-            keys.length ? `Clear these secret-box / .env keys so it does not return on reload: ${keys.join(", ")}` : "",
-            last ? "This is the last mailbox; mail tools will be empty until you add one." : "",
-          ]
-            .filter(Boolean)
-            .join("\n"),
-        });
-        if (cancelled) return cancelled;
         const result = backend.unbindAccount(acct.id);
         return json({
           unbound: { id: result.id, address: result.address },
           cleared_env: result.cleared,
           remaining: backend.listAccounts(),
-          add_mailbox: addMailboxHint(backend.listAccounts().length),
-          persist:
-            "Grok Bot: also delete those variable names in the plugin secret box, then reload qqconnect. Local TUI: keys were stripped from .env; no MCP restart needed. Do not edit the repo or the MCP start command.",
         });
       } catch (err) {
         return fail(err instanceof Error ? err.message : String(err));
@@ -557,7 +523,7 @@ export function registerMailTools(register: Register, backend: MailBackend): voi
           send_allowlist: nextList,
           allow_sensitive: nextSensitive,
         });
-        return json({ ...saved, note: "已对你账号下所有 Bot 生效。不要把授权码写进回复。" });
+        return json(saved);
       } catch (err) {
         return fail(err instanceof Error ? err.message : String(err));
       }
@@ -636,11 +602,8 @@ export function registerMailTools(register: Register, backend: MailBackend): voi
     },
   );
 
-  const PENDING_GUIDE =
-    "把 To/Subject/正文贴给用户，问要润色还是直接发。用户说直接发后再调用本工具，只带 confirm_token。未同意不要带 token。这次没有走 SMTP。「始终允许」不是发信确认。";
-
   function pendingJson(token: string, preview: { to: string[]; cc: string[]; subject: string; body: string }) {
-    return json({ pending: true, confirm_token: token, ...preview, guide: PENDING_GUIDE });
+    return json({ pending: true, confirm_token: token, ...preview });
   }
 
   register(

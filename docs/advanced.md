@@ -28,7 +28,7 @@ node dist/index.js setup
 
 服务器强制：回复 To 取自原信；转发目标必须你指定且在白名单；无 BCC；滚动一小时最多 5 封（记在磁盘上）；验证码信不能读、回、转。打开 `allow_sensitive` 要确认卡（或本机 `config allow-sensitive on` / 手改 JSON）。
 
-**Grok Bot 发信两步：** 第一次 `send_*` 只返回预览和 `confirm_token`（不走 SMTP）。Bot 把预览贴给你，问润色还是直接发。你说直接发后，再带 `confirm_token` 调一次才会发出。「已允许一次 / 始终允许」只是 Auto-review，不是发信确认。不要用 `QQCONNECT_SEND_UNSAFE_NO_CONFIRM` 绕过，除非在跑本仓库测试。
+发信：第一次 `send_*` 只返回预览和 `confirm_token`；用户说发后再带 token 调一次才走 SMTP。
 
 `pnpm build` 后新开会话（或 `/mcps` 对短名按 `r`）。改档位不用 build。
 

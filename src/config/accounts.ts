@@ -249,12 +249,7 @@ export function addMailboxHint(accountCount: number): AddMailboxHint {
   return {
     next_slot: n,
     env,
-    guide: [
-      `再加邮箱：请用户在 MCP 密钥框填写 ${env.MAIL_USER}、${env.MAIL_AUTH_CODE}，可选 ${env.MAIL_ACCOUNT_ID}（短名）。`,
-      "邮箱地址和授权码都是密钥：禁止发到聊天、禁止写进回复、禁止为加号去改仓库或 MCP 启动命令。",
-      "Grok Bot：只报变量名，用户在插件密钥框填好后重载 qqconnect（不要 source .env，不要 run-mcp.sh）。",
-      "本机 TUI：可在 .env 写同名变量；下次 list_accounts / get_settings 会重新读取，不必杀掉 MCP。",
-    ].join(""),
+    guide: `密钥框填写 ${env.MAIL_USER}、${env.MAIL_AUTH_CODE}，可选 ${env.MAIL_ACCOUNT_ID}，然后重载。不要把值发到聊天或改仓库。`,
   };
 }
 
@@ -268,12 +263,6 @@ export function unbindMailboxHint(
 ): UnbindMailboxHint {
   return {
     accounts: accounts.map((a) => ({ id: a.id, address: a.address, env: a.unbind_env ?? [] })),
-    guide: [
-      "解绑邮箱：调用 unbind_mailbox，account_id 用 list_accounts 的 id，等待确认卡。",
-      "不要改仓库、不要手改 .env、不要改 MCP 启动命令、不要发明 run-mcp.sh。",
-      "Grok Bot：确认后还要在插件密钥框删除返回的变量名并重载 qqconnect，否则下次启动会回来。",
-      "本机 TUI：工具会从进程和 .env 清掉这些变量，不必杀 MCP。",
-      "这不会删除服务器上的邮件。",
-    ].join(""),
+    guide: "调用 unbind_mailbox。不删除服务器上的邮件。",
   };
 }

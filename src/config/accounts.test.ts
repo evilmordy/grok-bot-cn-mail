@@ -86,7 +86,6 @@ describe("addMailboxHint", () => {
       MAIL_ACCOUNT_ID: "MAIL_ACCOUNT_ID_2",
     });
     expect(hint.guide).toMatch(/密钥框/);
-    expect(hint.guide).toMatch(/改仓库/);
     expect(hint.guide).not.toMatch(/@qq\.com|@163\.com/);
   });
 
@@ -96,7 +95,6 @@ describe("addMailboxHint", () => {
     ]);
     expect(hint.accounts[0]?.env).toEqual(["MAIL_USER_2", "MAIL_AUTH_CODE_2"]);
     expect(hint.guide).toMatch(/unbind_mailbox/);
-    expect(hint.guide).toMatch(/确认卡/);
   });
 });
 

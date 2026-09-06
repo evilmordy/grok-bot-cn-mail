@@ -138,10 +138,10 @@ export function modeHint(need: "draft" | "send"): string {
 
 export function settingsGuide(settings: Settings = getSettings()): string {
   if (settings.mode === "read") {
-    return "默认只读，可以直接 search_messages / get_message。不要问授权码。用户要写信时再问是否打开草稿（推荐，网页里自己发送）。不要主动推销 SMTP 发送。";
+    return "只读。写信先问是否打开草稿。不要问授权码。";
   }
   if (settings.mode === "draft") {
-    return "当前是草稿档：可以 save_draft / save_reply_draft。真发信需用户再要求打开发送并给出白名单。";
+    return "草稿档：save_draft / save_reply_draft。";
   }
-  return "当前是发送档：收件人必须在 send_allowlist 内。发信先出预览和 confirm_token，用户在对话里同意后再带 token 发送。「始终允许」不是发信确认。此设置对账号下所有 Bot 生效。";
+  return "发送档。先预览，用户同意后再带 confirm_token 发送。";
 }

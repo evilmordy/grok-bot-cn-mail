@@ -52,9 +52,9 @@ grok mcp doctor qqconnect
 
 再加 163/126 等第二邮箱时：**还是密钥框**，变量名 `MAIL_USER_2`、`MAIL_AUTH_CODE_2`，可选 `MAIL_ACCOUNT_ID_2`。只报变量名，不要让 Bot 把地址写进聊天，也不要让它改仓库、`.env` 或 MCP 启动命令。填好后重载 qqconnect。本机 TUI 才把同名变量写进 `.env`。
 
-解绑：对 Bot 说「解绑 mail163」，它应调用 `unbind_mailbox`。Grok Bot 若看不到确认卡，请用本机 `config unbind`。确认后本进程会摘掉这个号；Grok Bot 还要在密钥框删掉对应变量并重载。**不会删除服务器上的邮件。**
+解绑：说「解绑 mail163」。不会删除服务器上的邮件。
 
-**Grok Bot 发信：** 先 `send_email` 拿到预览，把 To/主题/正文贴给你问润色还是直接发；你说直接发后再带 `confirm_token` 调一次才会 SMTP。「始终允许」不是发信确认。
+发信：Bot 先给你看 To/主题/正文，你说发了才会真正发出。
 
 ## 测试
 
