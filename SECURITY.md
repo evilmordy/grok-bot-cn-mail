@@ -12,7 +12,7 @@ Use GitHub **Private vulnerability reporting** (Security → Report a vulnerabil
 2. `send` mode is stored in the settings file (`mode` + `send_allowlist`), not in `.env`. Recipients are checked in code, not by the model. Enabling send via `set_settings` requires a non-empty allowlist and elicitation. `QQCONNECT_ACCOUNTS` JSON must use `authCodeEnv`, never an inline `authCode`.
 3. SMTP send waits for MCP elicitation (`confirm: true`). If the client cannot elicit, the tool fails with `CONFIRMATION_UNSUPPORTED` and does not send. `QQCONNECT_SEND_UNSAFE_NO_CONFIRM=1` is a documented foot-gun for tests, not a default.
 4. FETCH uses ImapFlow `download`, which issues `BODY.PEEK`. Unread mail stays unread. Read folders open with `readOnly: true` (`EXAMINE`). Write is only IMAP `APPEND` to `\Drafts` / `\Sent`.
-5. Envelope-first DLP: OTP/password/recovery subjects are classified **before** BODY is downloaded. Search results redact those subjects. `get_message` / attachments / reply / forward refuse them. Override only with `allow_sensitive` in the settings file.
+5. Envelope-first DLP: OTP/password/recovery subjects are classified **before** BODY is downloaded. Search results redact those subjects. `get_message` / attachments / reply / forward refuse them. Override with `allow_sensitive` in the settings file, or via `set_settings` after elicitation (CLI `config allow-sensitive on` is local and does not elicit).
 6. Authorization codes never appear in tool results, stdout, or structured logs.
 7. Stdout is MCP JSON-RPC only. Logs go to stderr. Send audit logs account, to, subject, message-id — never the auth code. Blocked mail logs uid + class, not the subject.
 8. TLS 1.2+ with certificate verification for IMAP and SMTP. No `NODE_TLS_REJECT_UNAUTHORIZED=0`.

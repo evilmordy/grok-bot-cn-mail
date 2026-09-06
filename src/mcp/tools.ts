@@ -131,7 +131,10 @@ export const toolSchemas = {
       .string()
       .optional()
       .describe("Comma-separated addresses or @domain. Required when enabling send."),
-    allow_sensitive: z.boolean().optional().describe("If true, OTP/password bodies are returned"),
+    allow_sensitive: z
+      .boolean()
+      .optional()
+      .describe("If true, OTP/password bodies are returned. Enabling requires a confirmation card."),
   }),
 };
 
@@ -166,10 +169,18 @@ function confirmSchema() {
   };
 }
 
-function confirmMessage(preview: { to: string[]; cc: string[]; subject: string; body: string }): string {
+type ConfirmPreview = {
+  to: string[];
+  cc: string[];
+  subject: string;
+  body: string;
+  prompt?: string;
+};
+
+function confirmMessage(preview: ConfirmPreview): string {
   return [
-    "Send this email via SMTP? Decline to abort.",
-    `To: ${preview.to.join(", ")}`,
+    preview.prompt ?? "Send this email via SMTP? Decline to abort.",
+    preview.to.length ? `To: ${preview.to.join(", ")}` : undefined,
     preview.cc.length ? `Cc: ${preview.cc.join(", ")}` : undefined,
     `Subject: ${preview.subject}`,
     "",
@@ -181,7 +192,7 @@ function confirmMessage(preview: { to: string[]; cc: string[]; subject: string; 
 
 async function confirmSend(
   extra: ToolExtra | undefined,
-  preview: { to: string[]; cc: string[]; subject: string; body: string },
+  preview: ConfirmPreview,
 ): Promise<ConfirmOutcome> {
   if (unsafeSkipConfirm()) return undefined;
   if (!extra) {
@@ -445,7 +456,7 @@ export function registerMailTools(register: Register, backend: MailBackend): voi
     "set_settings",
     {
       description:
-        "在用户选定后修改档位或发送白名单。mode=draft 打开草稿；mode=send 必须带 send_allowlist，且要确认卡片。不要把授权码写入此工具。打开发送对账号下所有 Bot 生效。",
+        "在用户选定后修改档位或发送白名单。mode=draft 打开草稿；mode=send 必须带 send_allowlist，且要确认卡片。打开 allow_sensitive 同样要确认卡片。不要把授权码写入此工具。打开发送对账号下所有 Bot 生效。",
       inputSchema: toolSchemas.set_settings,
     },
     async (args, extra) => {
@@ -465,6 +476,16 @@ export function registerMailTools(register: Register, backend: MailBackend): voi
             cc: [],
             subject: "Enable SMTP send mode",
             body: `This allows the bot to send mail via SMTP to: ${nextList.join(", ")}`,
+          });
+          if (cancelled) return cancelled;
+        }
+        if (nextSensitive && !cur.allow_sensitive) {
+          const cancelled = await confirmSend(extra, {
+            to: [],
+            cc: [],
+            subject: "Enable allow_sensitive",
+            prompt: "Return OTP/password email bodies to the model? Decline to abort.",
+            body: "Security/OTP messages will no longer be blocked. This is not an SMTP send.",
           });
           if (cancelled) return cancelled;
         }

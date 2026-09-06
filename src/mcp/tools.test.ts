@@ -212,4 +212,34 @@ describe("registerMailTools", () => {
     };
     expect(r.isError).toBe(true);
   });
+
+  it("refuses allow_sensitive without a confirmation card", async () => {
+    overrideSettingsForTest({ mode: "read", send_allowlist: [], allow_sensitive: false });
+    const calls = collect();
+    const denied = (await calls.get("set_settings")!({ allow_sensitive: true })) as {
+      isError?: boolean;
+      content: Array<{ text: string }>;
+    };
+    expect(denied.isError).toBe(true);
+    expect(denied.content[0].text).toMatch(/CONFIRMATION_UNSUPPORTED/);
+    expect(JSON.parse((await calls.get("get_settings")!({}) as { content: Array<{ text: string }> }).content[0].text).allow_sensitive).toBe(false);
+  });
+
+  it("enables allow_sensitive only after elicitation accept", async () => {
+    overrideSettingsForTest({ mode: "read", send_allowlist: [], allow_sensitive: false });
+    const calls = collect();
+    const declined = (await calls.get("set_settings")!(
+      { allow_sensitive: true },
+      { elicitInput: async () => ({ action: "decline" }) },
+    )) as { isError?: boolean };
+    expect(declined.isError).toBe(true);
+    expect(JSON.parse((await calls.get("get_settings")!({}) as { content: Array<{ text: string }> }).content[0].text).allow_sensitive).toBe(false);
+
+    const ok = (await calls.get("set_settings")!({ allow_sensitive: true }, yes)) as {
+      isError?: boolean;
+      content: Array<{ text: string }>;
+    };
+    expect(ok.isError).toBeFalsy();
+    expect(JSON.parse(ok.content[0].text).allow_sensitive).toBe(true);
+  });
 });
