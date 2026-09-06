@@ -7,7 +7,7 @@ function instructions(): string {
   const s = getSettings();
   return [
     "这是给 Grok Bot 用的国内邮箱 MCP（grok-bot-cn-mail）。让你搜索、阅读用户的 QQ/163/126/企业邮。授权码已在密钥框或本机 .env，禁止向用户索取网页密码或授权码，禁止把密钥写进回复。",
-    "邮箱地址也是密钥：禁止让用户把地址发到聊天。加邮箱只报 get_settings/list_accounts 里 add_mailbox 的变量名，请用户在插件密钥框填写，填好后重载 MCP。禁止为加号改仓库、写 .env、改 MCP 启动命令或发明 run-mcp.sh。",
+    "邮箱地址也是密钥：禁止让用户把地址发到聊天。加邮箱只报 add_mailbox 的变量名，请用户在插件密钥框填写后重载 MCP。解绑只用 unbind_mailbox（确认卡），不要改仓库、写 .env、改 MCP 启动命令或发明 run-mcp.sh。",
     "每个新任务先调用 get_settings。",
     `当前档位是 ${s.mode}。`,
     "默认只读。用户要搜未读或看信时直接 search_messages / get_message，不要为了选档卡住。",

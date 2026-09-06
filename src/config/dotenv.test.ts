@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { applyDotEnvText, envFileCandidates } from "./dotenv.js";
+import { applyDotEnvText, envFileCandidates, stripKeysFromDotEnvText } from "./dotenv.js";
 
 describe("applyDotEnvText", () => {
   it("fills empty keys and ignores comments", () => {
@@ -31,6 +31,17 @@ describe("envFileCandidates", () => {
   afterEach(() => {
     delete process.env.GROK_PLUGIN_ROOT;
     delete process.env.QQCONNECT_DOTENV;
+  });
+
+  it("strips named keys and keeps comments", () => {
+    const next = stripKeysFromDotEnvText(
+      "# keep\nMAIL_USER=a@qq.com\nMAIL_USER_2=b@163.com\nMAIL_AUTH_CODE_2=secret\n",
+      new Set(["MAIL_USER_2", "MAIL_AUTH_CODE_2"]),
+    );
+    expect(next).toContain("MAIL_USER=a@qq.com");
+    expect(next).toContain("# keep");
+    expect(next).not.toContain("MAIL_USER_2");
+    expect(next).not.toContain("secret");
   });
 
   it("includes GROK_PLUGIN_ROOT/.env so plugin and workspace files can both apply", () => {

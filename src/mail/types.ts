@@ -5,6 +5,7 @@ export type AccountInfo = {
   address: string;
   provider: string;
   host: string;
+  unbind_env?: string[];
 };
 
 export type FolderInfo = {
@@ -105,6 +106,8 @@ export type MailBackend = {
   listAccounts(): AccountInfo[];
   /** Re-read env / `.env` so a newly bound mailbox appears without killing the MCP process. */
   reloadAccounts(): void;
+  /** Drop a bound mailbox from this process (and `.env` when applicable). Does not delete server mail. */
+  unbindAccount(accountId: string): { id: string; address: string; cleared: string[] };
   listFolders(accountId: string): Promise<FolderInfo[]>;
   search(query: SearchQuery): Promise<MessageMeta[]>;
   getMessage(accountId: string, folder: string, uid: number): Promise<MessageBody>;

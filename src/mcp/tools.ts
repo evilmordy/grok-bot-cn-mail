@@ -11,7 +11,7 @@ import {
   settingsGuide,
   type ConnectMode,
 } from "../config/settings.js";
-import { addMailboxHint } from "../config/accounts.js";
+import { addMailboxHint, unbindMailboxHint } from "../config/accounts.js";
 import { clampLimit } from "../imap/search.js";
 import { capRecipients, collectAddresses, replyTargets } from "../mail/compose.js";
 import { forwardSubject, replySubject } from "../mail/rfc822.js";
@@ -143,6 +143,11 @@ export const toolSchemas = {
       .optional()
       .describe("If true, OTP/password bodies are returned. Enabling requires a confirmation card."),
   }),
+  unbind_mailbox: z.object({
+    account_id: z
+      .string()
+      .describe("Account id from list_accounts. Unbinds this MCP only; does not delete mail on the server."),
+  }),
 };
 
 export type MailToolName = keyof typeof toolSchemas;
@@ -182,6 +187,7 @@ type ConfirmPreview = {
   subject: string;
   body: string;
   prompt?: string;
+  unsupported?: string;
 };
 
 function confirmMessage(preview: ConfirmPreview): string {
@@ -202,10 +208,11 @@ async function confirmSend(
   preview: ConfirmPreview,
 ): Promise<ConfirmOutcome> {
   if (unsafeSkipConfirm()) return undefined;
+  const unsupported =
+    preview.unsupported ??
+    "CONFIRMATION_UNSUPPORTED: the MCP client has no elicitation UI. Send was not executed.";
   if (!extra) {
-    return fail(
-      "CONFIRMATION_UNSUPPORTED: the MCP client has no elicitation UI. Send was not executed.",
-    );
+    return fail(unsupported);
   }
 
   const accepted = acceptedContent<{ confirm: boolean }>(extra.inputResponses, "confirm");
@@ -231,9 +238,7 @@ async function confirmSend(
       if (/2026-07-28|inputRequired|input_required|deprecated/i.test(msg)) {
         // fall through to multi-round-trip elicitation
       } else if (/elicit|capability|not support/i.test(msg)) {
-        return fail(
-          "CONFIRMATION_UNSUPPORTED: the MCP client has no elicitation UI. Send was not executed.",
-        );
+        return fail(unsupported);
       } else {
         throw err;
       }
@@ -251,9 +256,7 @@ async function confirmSend(
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return fail(
-      `CONFIRMATION_UNSUPPORTED: the MCP client has no elicitation UI. Send was not executed. (${msg})`,
-    );
+    return fail(`${unsupported} (${msg})`);
   }
 }
 
@@ -294,7 +297,7 @@ export function registerMailTools(register: Register, backend: MailBackend): voi
     "list_accounts",
     {
       description:
-        "列出已绑定邮箱（不含密钥）。新任务应先 get_settings；多个邮箱时后续工具要带 account_id。用户要加邮箱时看返回的 add_mailbox：只报变量名，让用户填密钥框，不要改仓库或 MCP 启动命令。",
+        "列出已绑定邮箱（不含密钥）。新任务应先 get_settings；多个邮箱时后续工具要带 account_id。加邮箱看 add_mailbox；解绑调用 unbind_mailbox。不要改仓库或 MCP 启动命令。",
       inputSchema: toolSchemas.list_accounts,
     },
     async () => {
@@ -306,6 +309,7 @@ export function registerMailTools(register: Register, backend: MailBackend): voi
           settings: getSettings(),
           guide: settingsGuide(),
           add_mailbox: addMailboxHint(accounts.length),
+          remove_mailbox: unbindMailboxHint(accounts),
         });
       } catch (err) {
         return fail(err instanceof Error ? err.message : String(err));
@@ -457,7 +461,7 @@ export function registerMailTools(register: Register, backend: MailBackend): voi
     "get_settings",
     {
       description:
-        "查看当前档位（read/draft/send）和发送白名单，不含密钥。每个新任务应先调用。用户要加邮箱时看 add_mailbox，只报变量名让用户填密钥框，不要改仓库。",
+        "查看当前档位（read/draft/send）和发送白名单，不含密钥。每个新任务应先调用。加邮箱看 add_mailbox；解绑用 unbind_mailbox，不要改仓库。",
       inputSchema: toolSchemas.get_settings,
     },
     async () => {
@@ -469,6 +473,55 @@ export function registerMailTools(register: Register, backend: MailBackend): voi
           accounts,
           guide: settingsGuide(),
           add_mailbox: addMailboxHint(accounts.length),
+          remove_mailbox: unbindMailboxHint(accounts),
+        });
+      } catch (err) {
+        return fail(err instanceof Error ? err.message : String(err));
+      }
+    },
+  );
+
+  register(
+    "unbind_mailbox",
+    {
+      description:
+        "解绑一个已连接的邮箱。不删除服务器上的邮件。必须确认卡。不要改仓库或 MCP 启动命令。Grok Bot 确认后还要让用户在密钥框删掉返回的变量名并重载。",
+      inputSchema: toolSchemas.unbind_mailbox,
+    },
+    async (args, extra) => {
+      try {
+        backend.reloadAccounts();
+        const q = toolSchemas.unbind_mailbox.parse(args);
+        const accounts = backend.listAccounts();
+        const acct = accounts.find((a) => a.id === q.account_id);
+        if (!acct) throw new Error(`unknown account ${q.account_id}`);
+        const keys = acct.unbind_env ?? [];
+        const last = accounts.length === 1;
+        const cancelled = await confirmSend(extra, {
+          to: [],
+          cc: [],
+          subject: `Unbind mailbox ${acct.id}`,
+          prompt: "Unbind this mailbox from the MCP? Decline to abort.",
+          unsupported:
+            "CONFIRMATION_UNSUPPORTED: the MCP client has no elicitation UI. Unbind was not executed.",
+          body: [
+            `Account: ${acct.id} (${acct.address})`,
+            "This does not delete any mail on the server.",
+            keys.length ? `Clear these secret-box / .env keys so it does not return on reload: ${keys.join(", ")}` : "",
+            last ? "This is the last mailbox; mail tools will be empty until you add one." : "",
+          ]
+            .filter(Boolean)
+            .join("\n"),
+        });
+        if (cancelled) return cancelled;
+        const result = backend.unbindAccount(acct.id);
+        return json({
+          unbound: { id: result.id, address: result.address },
+          cleared_env: result.cleared,
+          remaining: backend.listAccounts(),
+          add_mailbox: addMailboxHint(backend.listAccounts().length),
+          persist:
+            "Grok Bot: also delete those variable names in the plugin secret box, then reload qqconnect. Local TUI: keys were stripped from .env; no MCP restart needed. Do not edit the repo or the MCP start command.",
         });
       } catch (err) {
         return fail(err instanceof Error ? err.message : String(err));

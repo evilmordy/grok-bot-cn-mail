@@ -1,5 +1,5 @@
 import { ImapFlow } from "imapflow";
-import { loadAccounts, publicAccountView, type Account } from "../config/accounts.js";
+import { loadAccounts, publicAccountView, unbindEnvAccount, type Account } from "../config/accounts.js";
 import { loadDotEnv } from "../config/dotenv.js";
 import { assertPublicMailHost } from "../config/presets.js";
 import { logError, logInfo, logWarn } from "../log.js";
@@ -72,7 +72,7 @@ export class ImapMailBackend implements MailBackend {
 
   reloadAccounts(): void {
     loadDotEnv();
-    const next = loadAccounts();
+    const next = loadAccounts({ allowEmpty: true });
     const nextById = new Map(next.map((a) => [a.id, a]));
     for (const id of [...this.slots.keys()]) {
       const neu = nextById.get(id);
@@ -82,6 +82,14 @@ export class ImapMailBackend implements MailBackend {
       }
     }
     this.accounts = next;
+  }
+
+  unbindAccount(accountId: string): { id: string; address: string; cleared: string[] } {
+    const acct = this.account(accountId);
+    const { cleared } = unbindEnvAccount(acct);
+    void this.drop(accountId);
+    this.reloadAccounts();
+    return { id: acct.id, address: acct.address, cleared };
   }
 
   private account(id: string): Account {

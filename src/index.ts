@@ -19,6 +19,7 @@ Usage:
   qqconnect config set-mode read|draft|send [--allow a@b.com]
   qqconnect config allowlist add|remove|set a@b.com,...
   qqconnect config allow-sensitive on|off
+  qqconnect config unbind <account_id>
 
 Secrets (.env): MAIL_USER / MAIL_AUTH_CODE
 Policy (.grok-bot-cn-mail.json or .qqconnect.json): mode, send_allowlist, allow_sensitive

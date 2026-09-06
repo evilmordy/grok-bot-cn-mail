@@ -1,3 +1,5 @@
+import { logInfo } from "../log.js";
+import { stripKeysFromDotEnvFiles } from "./dotenv.js";
 import { domainOf, isPrivateOrMetadataHost, resolvePreset, type ImapPreset } from "./presets.js";
 
 export type Account = {
@@ -10,6 +12,9 @@ export type Account = {
   sendImapId: boolean;
   smtpHost: string;
   smtpPort: number;
+  /** Env var names to clear on unbind. Names only, never values. */
+  envKeys: string[];
+  jsonBound?: boolean;
 };
 
 function readEnv(name: string): string | undefined {
@@ -27,7 +32,11 @@ function parseJsonAccounts(raw: string): Account[] {
   if (!Array.isArray(parsed) || parsed.length === 0) {
     throw new Error("QQCONNECT_ACCOUNTS must be a non-empty JSON array");
   }
-  return parsed.map((row, i) => accountFromRow(row, i, false));
+  return parsed.map((row, i) => {
+    const acct = accountFromRow(row, i, false);
+    acct.jsonBound = true;
+    return acct;
+  });
 }
 
 function accountFromRow(row: unknown, index: number, allowInlineAuth = true): Account {
@@ -92,6 +101,7 @@ function accountFromRow(row: unknown, index: number, allowInlineAuth = true): Ac
     sendImapId,
     smtpHost: smtpOverride || preset.smtpHost,
     smtpPort: rec.smtpPort ? Number(rec.smtpPort) : preset.smtpPort,
+    envKeys: authCodeEnv ? [authCodeEnv] : [],
   };
 }
 
@@ -104,7 +114,7 @@ function envSlot(base: string, index: number): string | undefined {
 
 function parseEnvAccounts(): Account[] {
   const out: Account[] = [];
-  for (let i = 1; i <= 20; i++) {
+  for (let i = 1; i <= MAX_ENV_SLOTS; i++) {
     const address = envSlot("MAIL_USER", i);
     const authCode = envSlot("MAIL_AUTH_CODE", i);
     if (!address && !authCode) continue;
@@ -129,15 +139,18 @@ function parseEnvAccounts(): Account[] {
     const idFlag = envSlot("QQCONNECT_IMAP_ID", i) ?? (i === 1 ? readEnv("QQCONNECT_IMAP_ID") : undefined);
     if (idFlag === "0" || idFlag === "false") row.sendImapId = false;
     if (idFlag === "1" || idFlag === "true") row.sendImapId = true;
-    out.push(accountFromRow(row, i - 1));
+    const acct = accountFromRow(row, i - 1);
+    acct.envKeys = envKeysForSlot(i).filter((k) => readEnv(k));
+    out.push(acct);
   }
   return out;
 }
 
-export function loadAccounts(): Account[] {
+export function loadAccounts(opts?: { allowEmpty?: boolean }): Account[] {
   const json = readEnv("QQCONNECT_ACCOUNTS");
   const accounts = json ? parseJsonAccounts(json) : parseEnvAccounts();
   if (accounts.length === 0) {
+    if (opts?.allowEmpty) return [];
     throw new Error(
       "no mailbox configured: set MAIL_USER + MAIL_AUTH_CODE (or MAIL_USER_2 / MAIL_AUTH_CODE_2 …), or QQCONNECT_ACCOUNTS JSON",
     );
@@ -156,16 +169,64 @@ export function publicAccountView(account: Account): {
   address: string;
   provider: string;
   host: string;
+  unbind_env: string[];
 } {
   return {
     id: account.id,
     address: account.address,
     provider: account.preset.provider,
     host: account.host,
+    unbind_env: [...account.envKeys],
   };
 }
 
-const MAX_ENV_SLOTS = 20;
+export const MAX_ENV_SLOTS = 20;
+
+export function envKeysForSlot(index: number): string[] {
+  const suffix = index <= 1 ? "" : `_${index}`;
+  const keys = [
+    `MAIL_USER${suffix}`,
+    `MAIL_AUTH_CODE${suffix}`,
+    `MAIL_ACCOUNT_ID${suffix}`,
+    `MAIL_HOST${suffix}`,
+    `MAIL_PORT${suffix}`,
+    `MAIL_SMTP_HOST${suffix}`,
+    `MAIL_SMTP_PORT${suffix}`,
+  ];
+  if (index <= 1) {
+    keys.push(
+      "MAIL_USER_1",
+      "MAIL_AUTH_CODE_1",
+      "MAIL_ACCOUNT_ID_1",
+      "QQCONNECT_USER",
+      "QQCONNECT_AUTH_CODE",
+      "QQCONNECT_HOST",
+      "QQCONNECT_SMTP_HOST",
+      "QQCONNECT_SMTP_PORT",
+      "QQCONNECT_IMAP_ID",
+    );
+  } else {
+    keys.push(`QQCONNECT_IMAP_ID_${index}`);
+  }
+  return keys;
+}
+
+/** Clear this mailbox from process env and `.env`. Does not delete mail on the server. */
+export function unbindEnvAccount(account: Account): { cleared: string[] } {
+  if (account.jsonBound) {
+    throw new Error(
+      `account ${account.id} was loaded from QQCONNECT_ACCOUNTS JSON; remove that entry in the secret box, then reload MCP`,
+    );
+  }
+  const keys = account.envKeys.filter((k) => k !== "QQCONNECT_ACCOUNTS");
+  if (keys.length === 0) {
+    throw new Error(`account ${account.id} has no env keys to clear`);
+  }
+  for (const k of keys) delete process.env[k];
+  const files = stripKeysFromDotEnvFiles(new Set(keys));
+  logInfo("mail.unbound", { accountId: account.id, keys: keys.length, files: files.length });
+  return { cleared: keys };
+}
 
 export type AddMailboxHint = {
   next_slot: number | null;
@@ -193,6 +254,26 @@ export function addMailboxHint(accountCount: number): AddMailboxHint {
       "邮箱地址和授权码都是密钥：禁止发到聊天、禁止写进回复、禁止为加号去改仓库或 MCP 启动命令。",
       "Grok Bot：只报变量名，用户在插件密钥框填好后重载 qqconnect（不要 source .env，不要 run-mcp.sh）。",
       "本机 TUI：可在 .env 写同名变量；下次 list_accounts / get_settings 会重新读取，不必杀掉 MCP。",
+    ].join(""),
+  };
+}
+
+export type UnbindMailboxHint = {
+  guide: string;
+  accounts: Array<{ id: string; address: string; env: string[] }>;
+};
+
+export function unbindMailboxHint(
+  accounts: Array<{ id: string; address: string; unbind_env?: string[] }>,
+): UnbindMailboxHint {
+  return {
+    accounts: accounts.map((a) => ({ id: a.id, address: a.address, env: a.unbind_env ?? [] })),
+    guide: [
+      "解绑邮箱：调用 unbind_mailbox，account_id 用 list_accounts 的 id，等待确认卡。",
+      "不要改仓库、不要手改 .env、不要改 MCP 启动命令、不要发明 run-mcp.sh。",
+      "Grok Bot：确认后还要在插件密钥框删除返回的变量名并重载 qqconnect，否则下次启动会回来。",
+      "本机 TUI：工具会从进程和 .env 清掉这些变量，不必杀 MCP。",
+      "这不会删除服务器上的邮件。",
     ].join(""),
   };
 }

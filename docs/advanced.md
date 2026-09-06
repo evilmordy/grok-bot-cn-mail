@@ -48,6 +48,15 @@ MAIL_ACCOUNT_ID_2=work
 
 写好 `.env` 后不必杀掉 MCP：下次 `list_accounts` 会重新读环境变量。
 
+### 解绑
+
+对 Bot 说「解绑某某邮箱」。正确路径是 `unbind_mailbox` + 确认卡，不是改仓库。
+
+- **Grok Bot：** 确认后在插件密钥框删除该号的 `MAIL_USER_*` / `MAIL_AUTH_CODE_*`（见工具返回的 `cleared_env`），再重载 qqconnect。
+- **本机：** `node dist/index.js config unbind <account_id>`，或让工具从 `.env` 删掉这些键。不必杀 MCP。
+
+这不会删除 QQ/163 服务器上的邮件。JSON 多账号（`QQCONNECT_ACCOUNTS`）请在密钥框改 JSON 后重载。
+
 JSON 里只放地址，授权码指向环境变量名：`authCodeEnv`，禁止内联 `authCode`。自建邮箱须公网 `host`、993、TLS。内网和云元数据 IP 会被拒绝。
 
 ## 工具
@@ -56,7 +65,8 @@ JSON 里只放地址，授权码指向环境变量名：`authCodeEnv`，禁止�
 
 | 工具 | 需要 | 干什么 |
 |---|---|---|
-| `list_accounts` | 默认 | 列出已绑定邮箱（不含密钥） |
+| `list_accounts` | 默认 | 列出已绑定邮箱（不含密钥）；含 add_mailbox / remove_mailbox 提示 |
+| `unbind_mailbox` | 确认卡 | 解绑一个 MCP 账号，不删服务器邮件 |
 | `list_folders` | 默认 | 列出文件夹 |
 | `search_messages` | 默认 | 按发件人/主题/日期/未读搜索，只返回信封 |
 | `get_message` | 默认 | 读一封（纯文本，包在 `<untrusted-email>` 里） |

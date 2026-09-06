@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { addMailboxHint, loadAccounts } from "./accounts.js";
+import { addMailboxHint, loadAccounts, unbindEnvAccount, unbindMailboxHint } from "./accounts.js";
 
 const KEYS = [
   "MAIL_USER",
@@ -88,5 +88,32 @@ describe("addMailboxHint", () => {
     expect(hint.guide).toMatch(/密钥框/);
     expect(hint.guide).toMatch(/改仓库/);
     expect(hint.guide).not.toMatch(/@qq\.com|@163\.com/);
+  });
+
+  it("points unbind at the tool and lists env key names only", () => {
+    const hint = unbindMailboxHint([
+      { id: "work", address: "a@163.com", unbind_env: ["MAIL_USER_2", "MAIL_AUTH_CODE_2"] },
+    ]);
+    expect(hint.accounts[0]?.env).toEqual(["MAIL_USER_2", "MAIL_AUTH_CODE_2"]);
+    expect(hint.guide).toMatch(/unbind_mailbox/);
+    expect(hint.guide).toMatch(/确认卡/);
+  });
+});
+
+describe("unbindEnvAccount", () => {
+  it("clears MAIL_USER_2 from the process env", () => {
+    process.env.MAIL_USER = "me@qq.com";
+    process.env.MAIL_AUTH_CODE = "abcdefghijklmnop";
+    process.env.MAIL_USER_2 = "work@163.com";
+    process.env.MAIL_AUTH_CODE_2 = "sixteencharscode1";
+    process.env.MAIL_ACCOUNT_ID_2 = "work";
+    const accts = loadAccounts();
+    const work = accts.find((a) => a.id === "work");
+    expect(work).toBeTruthy();
+    unbindEnvAccount(work!);
+    expect(process.env.MAIL_USER_2).toBeUndefined();
+    expect(process.env.MAIL_AUTH_CODE_2).toBeUndefined();
+    const left = loadAccounts({ allowEmpty: true });
+    expect(left.map((a) => a.id)).toEqual(["default"]);
   });
 });

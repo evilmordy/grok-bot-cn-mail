@@ -1,5 +1,6 @@
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { loadAccounts, publicAccountView, unbindEnvAccount } from "./config/accounts.js";
 import { parseSendAllowlist } from "./config/allowlist.js";
 import {
   getSettings,
@@ -57,6 +58,17 @@ export async function runCli(argv: string[]): Promise<void> {
     printSettings(patchSettings({ send_allowlist: next }));
     return;
   }
+  if (sub === "unbind") {
+    const id = rest[0];
+    if (!id) throw new Error("config unbind <account_id>");
+    const accounts = loadAccounts({ allowEmpty: true });
+    const acct = accounts.find((a) => a.id === id);
+    if (!acct) throw new Error(`unknown account ${id}`);
+    unbindEnvAccount(acct);
+    const remaining = loadAccounts({ allowEmpty: true }).map(publicAccountView);
+    process.stdout.write(`${JSON.stringify({ unbound: id, remaining }, null, 2)}\n`);
+    return;
+  }
   if (sub === "allow-sensitive") {
     const on = rest[0] === "on" || rest[0] === "true" || rest[0] === "1";
     if (rest[0] !== "on" && rest[0] !== "off" && rest[0] !== "true" && rest[0] !== "false" && rest[0] !== "1" && rest[0] !== "0") {
@@ -65,7 +77,7 @@ export async function runCli(argv: string[]): Promise<void> {
     printSettings(patchSettings({ allow_sensitive: on }));
     return;
   }
-  throw new Error("config commands: show | set-mode | allowlist | allow-sensitive");
+  throw new Error("config commands: show | set-mode | allowlist | allow-sensitive | unbind");
 }
 
 async function runSetup(): Promise<void> {

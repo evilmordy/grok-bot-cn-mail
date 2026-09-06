@@ -5,7 +5,15 @@ import { registerMailTools, toolSchemas, type ToolExtra } from "./tools.js";
 
 function backend() {
   return new FakeMailBackend(
-    [{ id: "qq", address: "you@qq.com", provider: "qq", host: "imap.qq.com" }],
+    [
+      {
+        id: "qq",
+        address: "you@qq.com",
+        provider: "qq",
+        host: "imap.qq.com",
+        unbind_env: ["MAIL_USER", "MAIL_AUTH_CODE"],
+      },
+    ],
     { qq: [{ path: "INBOX", name: "INBOX" }] },
     {
       qq: [
@@ -115,6 +123,7 @@ describe("registerMailTools", () => {
     expect(listed.content[0].text).toContain("you@qq.com");
     expect(listed.content[0].text).toContain("guide");
     expect(listed.content[0].text).toContain("MAIL_USER_2");
+    expect(listed.content[0].text).toContain("unbind_mailbox");
     expect(listed.content[0].text).toContain("密钥框");
     expect(listed.content[0].text).toMatch(/改仓库/);
     expect(listed.content[0].text).not.toMatch(/password/i);
@@ -274,6 +283,35 @@ describe("registerMailTools", () => {
     expect(r.content[0].text).toContain("默认只读");
     expect(r.content[0].text).toContain("MAIL_USER_2");
     expect(r.content[0].text).not.toMatch(/password/i);
+  });
+
+  it("unbinds a mailbox only after elicitation and does not ask to edit the repo", async () => {
+    const calls = collect();
+    const denied = (await calls.get("unbind_mailbox")!({ account_id: "qq" })) as {
+      isError?: boolean;
+      content: Array<{ text: string }>;
+    };
+    expect(denied.isError).toBe(true);
+    expect(denied.content[0].text).toMatch(/CONFIRMATION_UNSUPPORTED/);
+
+    const declined = (await calls.get("unbind_mailbox")!(
+      { account_id: "qq" },
+      { elicitInput: async () => ({ action: "decline" }) },
+    )) as { isError?: boolean };
+    expect(declined.isError).toBe(true);
+    const still = (await calls.get("list_accounts")!({})) as { content: Array<{ text: string }> };
+    expect(still.content[0].text).toContain("you@qq.com");
+
+    const ok = (await calls.get("unbind_mailbox")!({ account_id: "qq" }, yes)) as {
+      isError?: boolean;
+      content: Array<{ text: string }>;
+    };
+    expect(ok.isError).toBeFalsy();
+    const body = JSON.parse(ok.content[0].text);
+    expect(body.unbound.id).toBe("qq");
+    expect(body.remaining).toEqual([]);
+    expect(ok.content[0].text).toMatch(/secret box|密钥框|reload/i);
+    expect(ok.content[0].text).toMatch(/Do not edit the repo/);
   });
 
   it("set_settings to send without allowlist fails", async () => {

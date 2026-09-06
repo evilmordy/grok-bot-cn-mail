@@ -11,6 +11,7 @@
 - 设置文件不是合法 JSON 时记日志并回退只读。
 - 工具参数里 UID 必须是正整数，附件 part 必须是点分数字。
 - 加邮箱：`list_accounts` 给出下一槽变量名；Grok Bot 走密钥框，禁止改仓库或启动命令。`.env` 变更在下次 list 时热加载，不必杀 MCP。
+- 解绑邮箱：`unbind_mailbox` + 确认卡；不删服务器邮件。Grok Bot 还需在密钥框删变量并重载；本机可改 `.env` 或 `config unbind`。
 
 ## 0.1.0
 

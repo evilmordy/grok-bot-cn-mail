@@ -44,7 +44,7 @@ export class FakeMailBackend implements MailBackend {
   private nextUid = 1000;
 
   constructor(
-    private readonly accounts: AccountInfo[],
+    private accounts: AccountInfo[],
     private readonly folders: Record<string, FolderInfo[]>,
     private readonly messages: Record<string, FakeMessage[]>,
   ) {
@@ -66,6 +66,15 @@ export class FakeMailBackend implements MailBackend {
   }
 
   reloadAccounts(): void {}
+
+  unbindAccount(accountId: string): { id: string; address: string; cleared: string[] } {
+    const acct = this.accounts.find((a) => a.id === accountId);
+    if (!acct) throw new Error(`unknown account ${accountId}`);
+    this.accounts = this.accounts.filter((a) => a.id !== accountId);
+    delete this.folders[accountId];
+    delete this.messages[accountId];
+    return { id: acct.id, address: acct.address, cleared: acct.unbind_env ?? [] };
+  }
 
   async listFolders(accountId: string): Promise<FolderInfo[]> {
     const list = this.folders[accountId];

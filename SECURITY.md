@@ -27,7 +27,7 @@ Use GitHub **Private vulnerability reporting** (Security → Report a vulnerabil
 ## What this server does not do by default
 
 - SMTP send (needs `mode: send` in the settings file and an allowlist)
-- Delete, move, or flag mail
+- Delete, move, or flag mail. `unbind_mailbox` only drops the MCP binding (plus listed env keys); it does not delete messages on the server.
 - Store a second copy of your mailbox
 - Train models on mail
 - Accept a QQ/163 web login password

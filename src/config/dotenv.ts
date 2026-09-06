@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { logInfo } from "../log.js";
@@ -58,4 +58,41 @@ export function loadDotEnv(): string | undefined {
     first ??= file;
   }
   return first;
+}
+
+export function stripKeysFromDotEnvText(text: string, keys: Set<string>): string {
+  const nl = text.includes("\r\n") ? "\r\n" : "\n";
+  const lines = text.split(/\r?\n/);
+  const kept = lines.filter((raw) => {
+    let line = raw.trim();
+    if (!line || line.startsWith("#")) return true;
+    if (line.startsWith("export ")) line = line.slice(7).trim();
+    const eq = line.indexOf("=");
+    if (eq <= 0) return true;
+    const key = line.slice(0, eq).trim();
+    return !keys.has(key);
+  });
+  let out = kept.join(nl);
+  if (text.endsWith("\n") && !out.endsWith(nl)) out += nl;
+  return out;
+}
+
+/** Drop keys from on-disk `.env` files. Does not log values. */
+export function stripKeysFromDotEnvFiles(keys: Set<string>): string[] {
+  if (keys.size === 0) return [];
+  const changed: string[] = [];
+  const seen = new Set<string>();
+  for (const file of envFileCandidates()) {
+    if (seen.has(file) || !existsSync(file)) continue;
+    seen.add(file);
+    const prev = readFileSync(file, "utf8");
+    const next = stripKeysFromDotEnvText(prev, keys);
+    if (next === prev) continue;
+    mkdirSync(dirname(file), { recursive: true });
+    const tmp = `${file}.${process.pid}.tmp`;
+    writeFileSync(tmp, next, "utf8");
+    renameSync(tmp, file);
+    changed.push(file);
+  }
+  return changed;
 }
