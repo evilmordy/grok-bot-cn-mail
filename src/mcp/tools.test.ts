@@ -37,6 +37,23 @@ function backend() {
           subject: "验证码：123456",
           plain: "您的验证码是 123456",
         },
+        {
+          uid: 9,
+          folder: "INBOX",
+          from: "shop@example.com",
+          to: "you@qq.com",
+          date: "2026-09-03T00:00:00.000Z",
+          subject: "Your order",
+          plain: "您好，验证码是 847291，15分钟内有效。",
+          attachments: [
+            {
+              filename: "otp.png",
+              contentType: "image/png",
+              bytes: Buffer.from("png"),
+              part: "2",
+            },
+          ],
+        },
       ],
     },
   );
@@ -157,6 +174,27 @@ describe("registerMailTools", () => {
       yes,
     )) as { content: Array<{ text: string }> };
     expect(JSON.parse(sent.content[0].text).to).toEqual(["you@qq.com"]);
+  });
+
+  it("refuses attachments when the body looks like OTP even if the subject does not", async () => {
+    const calls = collect();
+    const listed = (await calls.get("list_attachments")!({
+      account_id: "qq",
+      folder: "INBOX",
+      uid: 9,
+    })) as { isError?: boolean; content: Array<{ text: string }> };
+    expect(listed.isError).toBe(true);
+    expect(listed.content[0].text).toMatch(/otp/i);
+
+    const att = (await calls.get("get_attachment")!({
+      account_id: "qq",
+      folder: "INBOX",
+      uid: 9,
+      part: "2",
+    })) as { isError?: boolean; content: Array<{ text: string }> };
+    expect(att.isError).toBe(true);
+    expect(att.content[0].text).toMatch(/otp/i);
+    expect(att.content[0].text).not.toContain("png");
   });
 
   it("refuses to forward a blocked OTP message", async () => {

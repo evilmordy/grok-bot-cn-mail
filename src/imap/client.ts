@@ -26,8 +26,8 @@ import type {
   ReplyInput,
   SearchQuery,
 } from "../mail/types.js";
-import { assertAttachmentAllowed } from "../sanitize/attachments.js";
-import { pickBody, truncateBody } from "../sanitize/html.js";
+import { assertAttachmentAllowed, MAX_ATTACHMENT_BYTES } from "../sanitize/attachments.js";
+import { DEFAULT_BODY_LIMIT, pickBody, truncateBody } from "../sanitize/html.js";
 import { applyBodyGate, assertNotBlocked, blockedStub, redactSearchHit } from "../sanitize/present.js";
 import { classifyEnvelope } from "../sanitize/sensitive.js";
 import { messageId, wrapUntrustedEmail } from "../sanitize/untrusted.js";
@@ -253,12 +253,18 @@ export class ImapMailBackend implements MailBackend {
       let plain: string | undefined;
       let html: string | undefined;
       if (parts.plain) {
-        const downloaded = await client.download(String(uid), parts.plain.part, { uid: true });
-        plain = await streamToString(downloaded.content);
+        const downloaded = await client.download(String(uid), parts.plain.part, {
+          uid: true,
+          maxBytes: DEFAULT_BODY_LIMIT + 1,
+        });
+        plain = await streamToString(downloaded.content, DEFAULT_BODY_LIMIT + 1);
       }
       if (parts.html) {
-        const downloaded = await client.download(String(uid), parts.html.part, { uid: true });
-        html = await streamToString(downloaded.content);
+        const downloaded = await client.download(String(uid), parts.html.part, {
+          uid: true,
+          maxBytes: DEFAULT_BODY_LIMIT + 1,
+        });
+        html = await streamToString(downloaded.content, DEFAULT_BODY_LIMIT + 1);
       }
       const picked = pickBody(plain, html);
       const { text, truncated } = truncateBody(picked);
@@ -307,20 +313,23 @@ export class ImapMailBackend implements MailBackend {
     uid: number,
     part: string,
   ): Promise<{ filename: string; contentType: string; bytes: Buffer }> {
+    const gated = await this.getMessage(accountId, folder, uid);
+    if (gated.blocked) {
+      throw new Error(`refusing to download attachments on a ${gated.blockedClass} message`);
+    }
     const account = this.account(accountId);
     return this.withMailbox(account, folder, async (client) => {
-      const envMsg = await client.fetchOne(String(uid), { envelope: true, uid: true }, { uid: true });
-      if (!envMsg) throw new Error(`message ${uid} not found`);
-      const envCls = classifyEnvelope(envelopeAddr(envMsg.envelope?.from), envMsg.envelope?.subject);
-      if (envCls) throw new Error(`refusing to download attachments on a ${envCls} message`);
       const msg = await client.fetchOne(String(uid), { bodyStructure: true, uid: true }, { uid: true });
       if (!msg) throw new Error(`message ${uid} not found`);
       const atts = attachmentNodes(msg.bodyStructure as MimeNode | undefined);
       const meta = atts.find((a) => a.part === part);
       if (!meta) throw new Error(`attachment part ${part} not found`);
       assertAttachmentAllowed(meta.filename, meta.size);
-      const downloaded = await client.download(String(uid), part, { uid: true });
-      const bytes = await streamToBuffer(downloaded.content);
+      const downloaded = await client.download(String(uid), part, {
+        uid: true,
+        maxBytes: MAX_ATTACHMENT_BYTES + 1,
+      });
+      const bytes = await streamToBuffer(downloaded.content, MAX_ATTACHMENT_BYTES);
       assertAttachmentAllowed(meta.filename, bytes.length);
       return {
         filename: downloaded.meta.filename || meta.filename,
@@ -333,20 +342,23 @@ export class ImapMailBackend implements MailBackend {
   async check(): Promise<{ id: string; ok: boolean; error?: string }[]> {
     const results: { id: string; ok: boolean; error?: string }[] = [];
     for (const account of this.accounts) {
-      const client = this.createClient(account);
       try {
-        await client.connect();
-        results.push({ id: account.id, ok: true });
+        await assertPublicMailHost(account.host);
+        const client = this.createClient(account);
+        try {
+          await client.connect();
+          results.push({ id: account.id, ok: true });
+        } finally {
+          try {
+            await client.logout();
+          } catch {
+            /* ignore */
+          }
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         logError("imap.check_failed", err, { accountId: account.id });
         results.push({ id: account.id, ok: false, error: message });
-      } finally {
-        try {
-          await client.logout();
-        } catch {
-          /* ignore */
-        }
       }
     }
     return results;
@@ -543,14 +555,20 @@ export class ImapMailBackend implements MailBackend {
   }
 }
 
-async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
+async function streamToBuffer(stream: NodeJS.ReadableStream, maxBytes?: number): Promise<Buffer> {
   const chunks: Buffer[] = [];
+  let size = 0;
   for await (const chunk of stream) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    size += buf.length;
+    if (maxBytes !== undefined && size > maxBytes) {
+      throw new Error(`download exceeds ${maxBytes} bytes`);
+    }
+    chunks.push(buf);
   }
   return Buffer.concat(chunks);
 }
 
-async function streamToString(stream: NodeJS.ReadableStream): Promise<string> {
-  return (await streamToBuffer(stream)).toString("utf8");
+async function streamToString(stream: NodeJS.ReadableStream, maxBytes?: number): Promise<string> {
+  return (await streamToBuffer(stream, maxBytes)).toString("utf8");
 }
