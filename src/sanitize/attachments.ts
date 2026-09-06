@@ -44,7 +44,7 @@ const ALLOWED_EXT = new Set([
 
 export const MAX_ATTACHMENT_BYTES = 2 * 1024 * 1024;
 
-export function extensionOf(filename: string): string {
+function extensionOf(filename: string): string {
   const base = filename.split(/[/\\]/).pop() ?? filename;
   const dot = base.lastIndexOf(".");
   if (dot < 0) return "";

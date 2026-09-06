@@ -31,11 +31,11 @@ import { DEFAULT_BODY_LIMIT, pickBody, truncateBody } from "../sanitize/html.js"
 import { applyBodyGate, assertNotBlocked, blockedStub, redactSearchHit } from "../sanitize/present.js";
 import { classifyEnvelope } from "../sanitize/sensitive.js";
 import { messageId, wrapUntrustedEmail } from "../sanitize/untrusted.js";
+import { SERVER_VERSION } from "../runtime.js";
 import { sendSmtp } from "../smtp/client.js";
 import { toImapSearch } from "./search.js";
 
 const MAX_FOLDERS = 200;
-const VERSION = "0.1.0";
 const IMAP_IDLE_MS = 45_000;
 
 function imapUsable(client: ImapFlow): boolean {
@@ -108,7 +108,7 @@ export class ImapMailBackend implements MailBackend {
       disableAutoIdle: true,
       disableIMAP4rev2: account.preset.disableImap4rev2,
       clientInfo: account.sendImapId
-        ? { name: "grok-bot-cn-mail", version: VERSION, vendor: "grok-bot-cn-mail" }
+        ? { name: "grok-bot-cn-mail", version: SERVER_VERSION, vendor: "grok-bot-cn-mail" }
         : undefined,
       tls: { minVersion: "TLSv1.2", rejectUnauthorized: true },
     });

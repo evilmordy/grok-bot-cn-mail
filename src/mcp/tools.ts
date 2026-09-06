@@ -151,7 +151,7 @@ export const toolSchemas = {
   }),
 };
 
-export type MailToolName = keyof typeof toolSchemas;
+type MailToolName = keyof typeof toolSchemas;
 
 type Register = (
   name: MailToolName,
@@ -288,6 +288,17 @@ function resolveFolder(folderPath?: string): string {
   return folderPath && folderPath.trim() ? folderPath : "INBOX";
 }
 
+function mailboxSnapshot(backend: MailBackend) {
+  backend.reloadAccounts();
+  const accounts = backend.listAccounts();
+  return {
+    accounts,
+    add_mailbox: addMailboxHint(accounts.length),
+    remove_mailbox: unbindMailboxHint(accounts),
+    server: serverStatus(),
+  };
+}
+
 export function registerMailTools(register: Register, backend: MailBackend): void {
   const limiter = new SendLimiter(
     MAX_SENDS_PER_WINDOW,
@@ -303,15 +314,10 @@ export function registerMailTools(register: Register, backend: MailBackend): voi
     },
     async () => {
       try {
-        backend.reloadAccounts();
-        const accounts = backend.listAccounts();
         return json({
-          accounts,
+          ...mailboxSnapshot(backend),
           settings: getSettings(),
           guide: settingsGuide(),
-          add_mailbox: addMailboxHint(accounts.length),
-          remove_mailbox: unbindMailboxHint(accounts),
-          server: serverStatus(),
         });
       } catch (err) {
         return fail(err instanceof Error ? err.message : String(err));
@@ -468,15 +474,10 @@ export function registerMailTools(register: Register, backend: MailBackend): voi
     },
     async () => {
       try {
-        backend.reloadAccounts();
-        const accounts = backend.listAccounts();
         return json({
           ...getSettings(),
-          accounts,
+          ...mailboxSnapshot(backend),
           guide: settingsGuide(),
-          add_mailbox: addMailboxHint(accounts.length),
-          remove_mailbox: unbindMailboxHint(accounts),
-          server: serverStatus(),
         });
       } catch (err) {
         return fail(err instanceof Error ? err.message : String(err));

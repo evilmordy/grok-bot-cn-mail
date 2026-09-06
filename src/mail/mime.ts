@@ -9,7 +9,7 @@ export type MimeNode = {
   childNodes?: MimeNode[];
 };
 
-export function walkMime(node: MimeNode | undefined, acc: MimeNode[] = []): MimeNode[] {
+function walkMime(node: MimeNode | undefined, acc: MimeNode[] = []): MimeNode[] {
   if (!node) return acc;
   acc.push(node);
   for (const child of node.childNodes ?? []) walkMime(child, acc);

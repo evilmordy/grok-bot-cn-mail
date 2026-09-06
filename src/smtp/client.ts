@@ -5,8 +5,6 @@ import type { Account } from "../config/accounts.js";
 import { assertPublicMailHost } from "../config/presets.js";
 
 export const MAX_SENDS_PER_WINDOW = 5;
-/** @deprecated use MAX_SENDS_PER_WINDOW */
-export const MAX_SENDS_PER_PROCESS = MAX_SENDS_PER_WINDOW;
 export const SEND_WINDOW_MS = 60 * 60 * 1000;
 
 type SendBucket = { startedAt: number; count: number };

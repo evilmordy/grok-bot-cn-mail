@@ -28,7 +28,7 @@ export function overrideSettingsForTest(value: Settings | null): void {
 
 const SETTINGS_NAMES = [".grok-bot-cn-mail.json", ".qqconnect.json"];
 
-export function settingsFileCandidates(fromModuleUrl: string = import.meta.url): string[] {
+function settingsFileCandidates(fromModuleUrl: string = import.meta.url): string[] {
   const explicit = process.env.QQCONNECT_CONFIG?.trim();
   if (explicit) return [explicit];
   const dir = dirname(fileURLToPath(fromModuleUrl));

@@ -63,7 +63,6 @@ export type SearchQuery = {
   since?: string;
   before?: string;
   unseen?: boolean;
-  hasAttachment?: boolean;
   limit: number;
 };
 

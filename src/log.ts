@@ -5,27 +5,22 @@ function redactValue(key: string, value: unknown): unknown {
   return value;
 }
 
-export function logInfo(event: string, fields: Record<string, unknown> = {}): void {
-  const body: Record<string, unknown> = { level: "info", event, ts: new Date().toISOString() };
+function writeLog(level: string, fields: Record<string, unknown>): void {
+  const body: Record<string, unknown> = { level, ts: new Date().toISOString() };
   for (const [k, v] of Object.entries(fields)) body[k] = redactValue(k, v);
   process.stderr.write(`${JSON.stringify(body)}\n`);
 }
 
+export function logInfo(event: string, fields: Record<string, unknown> = {}): void {
+  writeLog("info", { event, ...fields });
+}
+
 export function logWarn(event: string, fields: Record<string, unknown> = {}): void {
-  const body: Record<string, unknown> = { level: "warn", event, ts: new Date().toISOString() };
-  for (const [k, v] of Object.entries(fields)) body[k] = redactValue(k, v);
-  process.stderr.write(`${JSON.stringify(body)}\n`);
+  writeLog("warn", { event, ...fields });
 }
 
 export function logError(event: string, err: unknown, fields: Record<string, unknown> = {}): void {
   const message = err instanceof Error ? err.message : String(err);
   const safe = message.replace(/(pass(word)?|authcode|secret|token)\s*[:=]\s*\S+/gi, "$1=[redacted]");
-  const body: Record<string, unknown> = {
-    level: "error",
-    event,
-    message: safe,
-    ts: new Date().toISOString(),
-  };
-  for (const [k, v] of Object.entries(fields)) body[k] = redactValue(k, v);
-  process.stderr.write(`${JSON.stringify(body)}\n`);
+  writeLog("error", { event, message: safe, ...fields });
 }

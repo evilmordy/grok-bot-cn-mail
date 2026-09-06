@@ -182,7 +182,7 @@ export function publicAccountView(account: Account): {
 
 export const MAX_ENV_SLOTS = 20;
 
-export function envKeysForSlot(index: number): string[] {
+function envKeysForSlot(index: number): string[] {
   const suffix = index <= 1 ? "" : `_${index}`;
   const keys = [
     `MAIL_USER${suffix}`,
