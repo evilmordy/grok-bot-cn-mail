@@ -1,11 +1,11 @@
 ---
 name: mail-imap
-description: Enable IMAP/SMTP and create an authorization code (授权码) for QQ, 163, or 126 mail so QQConnect can read (and optionally draft/send). Never ask for the web login password.
+description: Enable IMAP/SMTP and create an authorization code (授权码) for QQ, 163, or 126 mail so grok-bot-cn-mail can read (and optionally draft/send). Never ask for the web login password.
 ---
 
 # IMAP 授权码
 
-QQConnect 只用 **IMAP 授权码**，不要网页登录密码。
+grok-bot-cn-mail 只用 **IMAP 授权码**，不要网页登录密码。
 
 ## QQ / Foxmail
 

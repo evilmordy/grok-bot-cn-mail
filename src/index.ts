@@ -9,7 +9,7 @@ import { logError, logInfo } from "./log.js";
 import { createMailServer } from "./mcp/server.js";
 
 function usage(): void {
-  process.stderr.write(`qqconnect — IMAP MCP (read by default; draft/send via config)
+  process.stderr.write(`grok-bot-cn-mail (qqconnect) — IMAP MCP for Grok Bot (read by default; draft/send via config)
 
 Usage:
   qqconnect                 start MCP on stdio

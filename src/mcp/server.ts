@@ -6,7 +6,7 @@ import { registerMailTools, toolSchemas } from "./tools.js";
 function instructions(): string {
   const s = getSettings();
   return [
-    "QQConnect 让你搜索、阅读用户的 QQ/163/126/企业邮。授权码已在密钥框或本机 .env，禁止向用户索取网页密码或授权码，禁止把密钥写进回复。",
+    "这是给 Grok Bot 用的国内邮箱 MCP（grok-bot-cn-mail）。让你搜索、阅读用户的 QQ/163/126/企业邮。授权码已在密钥框或本机 .env，禁止向用户索取网页密码或授权码，禁止把密钥写进回复。",
     "每个新任务先调用 get_settings。",
     `当前档位是 ${s.mode}。`,
     "若是 read，且用户没有明确说只要看信：先用一句话请用户选择 ①只读 ②草稿（推荐写信时用，网页里自己发送）③发送（SMTP，必须用户指定白名单，还要确认卡）。用户选定后立刻 set_settings。",

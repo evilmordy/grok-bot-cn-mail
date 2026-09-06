@@ -1,6 +1,6 @@
 # Security
 
-QQConnect is an IMAP MCP server. Default permission is **read**. Mailboxes are secret stores (password resets, magic links, 2FA codes). Treat every email body as hostile. There is no perfect defense against prompt injection; controls live in **server code**, not in the model prompt.
+grok-bot-cn-mail is an IMAP MCP server for Grok Bot. Default permission is **read**. Mailboxes are secret stores (password resets, magic links, 2FA codes). Treat every email body as hostile. There is no perfect defense against prompt injection; controls live in **server code**, not in the model prompt.
 
 ## Report a vulnerability
 

@@ -1,10 +1,10 @@
-# QQConnect
+# grok-bot-cn-mail
 
-虽然名字是 QQConnect，但不只支持 QQ 邮箱。
+给 **Grok Bot** 用的国内邮箱 MCP（Grok Build TUI 也能接）。支持 QQ / 163 / 126 / 腾讯企业邮，以及其它公开 IMAP。
 
-让 Grok 能**搜索、阅读** QQ / 163 / 126 / 腾讯企业邮。密钥放 `.env`（**不要提交到 git**），档位（只读 / 草稿 / 发送）放 `.qqconnect.json`，对 Grok 说一句或跑一条命令就能改，不必反复 `grok mcp add`。
+Grok 官方连接器是 Gmail 和 Outlook。国内这些邮箱没有同类官方插件，所以用这个跑在你电脑上的小程序：IMAP 登录邮箱，把「搜信、读信」变成 Bot 的工具。
 
-Grok 自带的是 Gmail、Outlook 连接器。国内这些邮箱没有同类官方插件，所以用这个本地小程序：它通过 IMAP 连上你的邮箱，再把「搜信、读信」变成 Bot 能调用的工具。
+仓库叫这个名字，是为了在 GitHub 上一眼能看出受众和用途，而不是某个 QQ 官方 SDK。Grok 里登记 MCP 时短名仍用 **`qqconnect`**（好说；已经加过的不用改）。密钥放 `.env`（**不要提交到 git**），档位（只读 / 草稿 / 发送）放 `.qqconnect.json`，对 Bot 说一句或跑一条命令就能改，不必反复 `grok mcp add`。
 
 你不需要懂 IMAP。下面按步骤做完，就可以对 Bot 说：「看看我 QQ 邮箱这周的未读。」
 
@@ -35,7 +35,7 @@ Grok Bot 或 Grok Build 至少有一个能用。Gmail / Outlook 请继续用官�
 1. 浏览器打开 [mail.qq.com](https://mail.qq.com) 并登录。
 2. 右上角头像 → **设置** → **账号与安全** → **安全设置**。
 3. 找到 POP3 / IMAP / SMTP，点 **开启**。按页面要求验证（扫码或发短信）。
-4. 点 **生成授权码**，备注写成 `qqconnect`，方便以后认出来。
+4. 点 **生成授权码**，备注写成 `grok-bot-cn-mail`（或 `qqconnect`），方便以后认出来。
 5. 把弹出的 16 位字符串复制下来，只存在你自己电脑上。  
    **不要发给 Bot，不要贴进聊天。**
 
@@ -154,7 +154,7 @@ grok mcp doctor qqconnect
 1. 本机先做完第 2～4 步，`pnpm check` 成功（证明授权码能登 IMAP）。
 2. 对 Bot 说（路径改成你的绝对路径），**只报变量名，不报值**：
 
-> 添加自定义 MCP，名字 qqconnect，命令 `node`，参数 `/你的路径/QQConnect/dist/index.js`。请用系统密钥输入框填写环境变量，不要把值写进对话或之后的回复：`MAIL_USER`（邮箱地址）、`MAIL_AUTH_CODE`（IMAP 授权码，不是网页密码）。
+> 添加自定义 MCP，名字 qqconnect，命令 `node`，参数写成你本机仓库里 `dist/index.js` 的绝对路径（clone 下来一般是 `/你的路径/grok-bot-cn-mail/dist/index.js`）。请用系统密钥输入框填写环境变量，不要把值写进对话或之后的回复：`MAIL_USER`（邮箱地址）、`MAIL_AUTH_CODE`（IMAP 授权码，不是网页密码）。
 
 弹出输入框后把地址和 16 位授权码填进去，和填 GitHub token 同一类操作。
 

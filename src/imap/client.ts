@@ -74,7 +74,7 @@ export class ImapMailBackend implements MailBackend {
       disableAutoIdle: true,
       disableIMAP4rev2: account.preset.disableImap4rev2,
       clientInfo: account.sendImapId
-        ? { name: "qqconnect", version: VERSION, vendor: "QQConnect" }
+        ? { name: "grok-bot-cn-mail", version: VERSION, vendor: "grok-bot-cn-mail" }
         : undefined,
       tls: { minVersion: "TLSv1.2", rejectUnauthorized: true },
     });

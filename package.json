@@ -1,14 +1,23 @@
 {
-  "name": "qqconnect",
+  "name": "grok-bot-cn-mail",
   "version": "0.1.0",
-  "description": "Read-only IMAP MCP server so Grok Bot can search and read QQ / 163 / 126 / Tencent exmail (and any IMAP mailbox).",
+  "description": "IMAP MCP so Grok Bot can search and read QQ / 163 / 126 / Tencent exmail.",
   "type": "module",
   "packageManager": "pnpm@11.8.0",
   "engines": {
     "node": ">=22"
   },
   "bin": {
-    "qqconnect": "./dist/index.js"
+    "qqconnect": "./dist/index.js",
+    "grok-bot-cn-mail": "./dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/evilmordy/grok-bot-cn-mail.git"
+  },
+  "homepage": "https://github.com/evilmordy/grok-bot-cn-mail",
+  "bugs": {
+    "url": "https://github.com/evilmordy/grok-bot-cn-mail/issues"
   },
   "main": "./dist/index.js",
   "files": [
