@@ -1,6 +1,6 @@
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SendLimiter } from "./client.js";
 
@@ -20,6 +20,7 @@ describe("SendLimiter", () => {
     expect(() => b.take()).toThrow(/per hour/);
     const disk = JSON.parse(readFileSync(file, "utf8")) as { count: number };
     expect(disk.count).toBe(5);
+    expect(readdirSync(dirname(file)).filter((n) => n.endsWith(".tmp"))).toEqual([]);
   });
 
   it("resets after the window elapses", () => {

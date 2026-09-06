@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import nodemailer from "nodemailer";
 import type { Account } from "../config/accounts.js";
@@ -63,7 +63,9 @@ export class SendLimiter {
     const file = this.opts.file;
     if (!file) return;
     mkdirSync(dirname(file), { recursive: true });
-    writeFileSync(file, `${JSON.stringify(bucket)}\n`, "utf8");
+    const tmp = `${file}.${process.pid}.tmp`;
+    writeFileSync(tmp, `${JSON.stringify(bucket)}\n`, "utf8");
+    renameSync(tmp, file);
   }
 }
 
