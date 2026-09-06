@@ -5,7 +5,7 @@ import { logInfo } from "../log.js";
 
 const KEY = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
-/** Secrets and connection facts only. Policy (mode/allowlist) lives in .qqconnect.json. */
+/** Secrets and connection facts only. Policy (mode/allowlist) lives in .grok-bot-cn-mail.json. */
 const SECRET_OR_CONN =
   /^(MAIL_[A-Z0-9_]+|QQCONNECT_(USER|AUTH_CODE|ACCOUNTS|HOST|SMTP_HOST|SMTP_PORT|IMAP_ID))$/;
 

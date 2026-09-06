@@ -4,6 +4,7 @@ import { parseSendAllowlist } from "./config/allowlist.js";
 import {
   getSettings,
   patchSettings,
+  settingsPath,
   type ConnectMode,
   type Settings,
 } from "./config/settings.js";
@@ -86,7 +87,7 @@ async function runSetup(): Promise<void> {
       send_allowlist: mode === "send" ? allow : getSettings().send_allowlist,
       allow_sensitive: sensitiveRaw === "y" || sensitiveRaw === "yes",
     });
-    process.stdout.write("已写入 .qqconnect.json\n");
+    process.stdout.write(`已写入 ${settingsPath()}\n`);
     printSettings(saved);
   } finally {
     rl.close();

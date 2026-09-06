@@ -56,7 +56,7 @@ export function classifyEnvelope(from?: string, subject?: string): SensitiveClas
 export function classifyBody(text: string): SensitiveClass | undefined {
   if (allowSensitive()) return undefined;
   const slice = text.slice(0, 8000);
-  if (SUBJECT_OTP.test(slice) && /\d{4,8}/.test(slice)) return "otp";
+  if (SUBJECT_OTP.test(slice) && CODE_NEAR_LABEL.test(slice)) return "otp";
   if (SUBJECT_PASSWORD.test(slice)) return "password";
   if (SUBJECT_RECOVERY.test(slice)) return "recovery";
   return undefined;

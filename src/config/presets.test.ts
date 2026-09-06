@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPrivateOrMetadataHost, resolvePreset } from "./presets.js";
+import { assertPublicMailHost, isBlockedIp, isPrivateOrMetadataHost, resolvePreset } from "./presets.js";
 
 describe("resolvePreset", () => {
   it("maps QQ and Foxmail to imap.qq.com:993", () => {
@@ -27,5 +27,28 @@ describe("isPrivateOrMetadataHost", () => {
     expect(isPrivateOrMetadataHost("192.168.1.1")).toBe(true);
     expect(isPrivateOrMetadataHost("169.254.169.254")).toBe(true);
     expect(isPrivateOrMetadataHost("imap.qq.com")).toBe(false);
+  });
+
+  it("blocks IPv6 loopback, link-local, ULA, and mapped IPv4", () => {
+    expect(isBlockedIp("::1")).toBe(true);
+    expect(isBlockedIp("fe80::1")).toBe(true);
+    expect(isBlockedIp("fd12:3456:789a::1")).toBe(true);
+    expect(isBlockedIp("::ffff:127.0.0.1")).toBe(true);
+    expect(isPrivateOrMetadataHost("[::1]")).toBe(true);
+    expect(isBlockedIp("8.8.8.8")).toBe(false);
+  });
+});
+
+describe("assertPublicMailHost", () => {
+  it("rejects names that resolve to a private address", async () => {
+    await expect(
+      assertPublicMailHost("evil.example", async () => [{ address: "127.0.0.1" }]),
+    ).rejects.toThrow(/private or metadata/);
+  });
+
+  it("allows names that resolve only to public addresses", async () => {
+    await expect(
+      assertPublicMailHost("imap.qq.com", async () => [{ address: "8.8.8.8" }]),
+    ).resolves.toBeUndefined();
   });
 });

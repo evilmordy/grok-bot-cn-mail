@@ -10,6 +10,7 @@ describe("htmlToText", () => {
     );
     expect(text).toContain("Hello");
     expect(text.toLowerCase()).not.toContain("alert");
+    expect(text).not.toMatch(/<script/i);
   });
 });
 
@@ -48,6 +49,8 @@ describe("assertAttachmentAllowed", () => {
   it("allows pdf and rejects executables", () => {
     expect(() => assertAttachmentAllowed("a.pdf", 100)).not.toThrow();
     expect(() => assertAttachmentAllowed("a.exe", 100)).toThrow(/blocked/);
+    expect(() => assertAttachmentAllowed("notes.zip", 100)).toThrow(/blocked/);
+    expect(() => assertAttachmentAllowed("msg.eml", 100)).toThrow(/blocked/);
     expect(() => assertAttachmentAllowed("a.bin", 100)).toThrow(/allowlist/);
   });
 });

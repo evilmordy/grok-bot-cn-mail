@@ -1,6 +1,7 @@
 import { ImapFlow } from "imapflow";
 import type { Account } from "../config/accounts.js";
 import { publicAccountView } from "../config/accounts.js";
+import { assertPublicMailHost } from "../config/presets.js";
 import { logError, logInfo, logWarn } from "../log.js";
 import { replyTargets } from "../mail/compose.js";
 import { attachmentNodes, textParts, type MimeNode } from "../mail/mime.js";
@@ -35,6 +36,11 @@ import { toImapSearch } from "./search.js";
 
 const MAX_FOLDERS = 200;
 const VERSION = "0.1.0";
+const IMAP_IDLE_MS = 45_000;
+
+function imapUsable(client: ImapFlow): boolean {
+  return Boolean((client as unknown as { usable?: boolean }).usable);
+}
 
 function envelopeAddr(
   list: Array<{ address?: string; name?: string }> | undefined,
@@ -52,6 +58,12 @@ function domainOfAddress(address: string): string {
 }
 
 export class ImapMailBackend implements MailBackend {
+  private readonly slots = new Map<
+    string,
+    { client: ImapFlow; timer?: ReturnType<typeof setTimeout> }
+  >();
+  private readonly tails = new Map<string, Promise<unknown>>();
+
   constructor(private readonly accounts: Account[]) {}
 
   listAccounts(): AccountInfo[] {
@@ -80,22 +92,69 @@ export class ImapMailBackend implements MailBackend {
     });
     client.on("error", (err) => {
       logError("imap.error", err, { accountId: account.id, host: account.host });
+      void this.drop(account.id);
     });
     return client;
   }
 
   private async withConnection<T>(account: Account, fn: (client: ImapFlow) => Promise<T>): Promise<T> {
-    const client = this.createClient(account);
+    const prev = this.tails.get(account.id) ?? Promise.resolve();
+    let unlock: () => void = () => {};
+    const held = new Promise<void>((resolve) => {
+      unlock = resolve;
+    });
+    this.tails.set(
+      account.id,
+      prev.then(() => held).catch(() => undefined),
+    );
+    await prev.catch(() => undefined);
     try {
-      await client.connect();
+      const client = await this.acquire(account);
       return await fn(client);
+    } catch (err) {
+      await this.drop(account.id);
+      throw err;
     } finally {
-      try {
-        await client.logout();
-      } catch (err) {
-        logWarn("imap.logout_failed", { accountId: account.id });
-        logError("imap.logout", err, { accountId: account.id });
-      }
+      this.armIdle(account.id);
+      unlock();
+    }
+  }
+
+  private async acquire(account: Account): Promise<ImapFlow> {
+    const existing = this.slots.get(account.id);
+    if (existing?.timer) {
+      clearTimeout(existing.timer);
+      existing.timer = undefined;
+    }
+    if (existing && imapUsable(existing.client)) return existing.client;
+    await this.drop(account.id);
+    await assertPublicMailHost(account.host);
+    const client = this.createClient(account);
+    await client.connect();
+    this.slots.set(account.id, { client });
+    return client;
+  }
+
+  private armIdle(accountId: string): void {
+    const slot = this.slots.get(accountId);
+    if (!slot) return;
+    if (slot.timer) clearTimeout(slot.timer);
+    slot.timer = setTimeout(() => {
+      void this.drop(accountId);
+    }, IMAP_IDLE_MS);
+    slot.timer.unref?.();
+  }
+
+  private async drop(accountId: string): Promise<void> {
+    const slot = this.slots.get(accountId);
+    if (!slot) return;
+    this.slots.delete(accountId);
+    if (slot.timer) clearTimeout(slot.timer);
+    try {
+      await slot.client.logout();
+    } catch (err) {
+      logWarn("imap.logout_failed", { accountId });
+      logError("imap.logout", err, { accountId });
     }
   }
 

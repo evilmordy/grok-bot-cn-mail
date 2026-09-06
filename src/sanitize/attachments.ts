@@ -17,6 +17,13 @@ const DENIED_EXT = new Set([
   "apk",
   "hta",
   "wsf",
+  "zip",
+  "eml",
+  "rar",
+  "7z",
+  "gz",
+  "tgz",
+  "tar",
 ]);
 
 const ALLOWED_EXT = new Set([
@@ -32,9 +39,7 @@ const ALLOWED_EXT = new Set([
   "docx",
   "xlsx",
   "pptx",
-  "zip",
   "ics",
-  "eml",
 ]);
 
 export const MAX_ATTACHMENT_BYTES = 2 * 1024 * 1024;

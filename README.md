@@ -4,7 +4,7 @@
 
 Grok 官方连接器是 Gmail 和 Outlook。国内这些邮箱没有同类官方插件，所以用这个跑在你电脑上的小程序：IMAP 登录邮箱，把「搜信、读信」变成 Bot 的工具。
 
-仓库叫这个名字，是为了在 GitHub 上一眼能看出受众和用途，而不是某个 QQ 官方 SDK。Grok 里登记 MCP 时短名仍用 **`qqconnect`**（好说；已经加过的不用改）。密钥放 `.env`（**不要提交到 git**），档位（只读 / 草稿 / 发送）放 `.qqconnect.json`，对 Bot 说一句或跑一条命令就能改，不必反复 `grok mcp add`。
+仓库叫这个名字，是为了在 GitHub 上一眼能看出受众和用途，而不是某个 QQ 官方 SDK。Grok 里登记 MCP 时短名仍用 **`qqconnect`**（好说；已经加过的不用改）。密钥放 `.env`（**不要提交到 git**），档位（只读 / 草稿 / 发送）放 `.grok-bot-cn-mail.json`（若已有 `.qqconnect.json` 会继续用它），对 Bot 说一句或跑一条命令就能改，不必反复 `grok mcp add`。
 
 你不需要懂 IMAP。下面按步骤做完，就可以对 Bot 说：「看看我 QQ 邮箱这周的未读。」
 
@@ -171,7 +171,7 @@ grok mcp doctor qqconnect
 
 ### 6. 打开草稿或发送（不要改 `.env`）
 
-`.env` 只放邮箱和授权码。档位写在仓库根目录的 `.qqconnect.json`（已 git 忽略）。默认 `read`：草稿/发送工具在列表里，一调用就会提示你先开档。
+`.env` 只放邮箱和授权码。档位写在仓库根目录的 `.grok-bot-cn-mail.json`（已 git 忽略；旧的 `.qqconnect.json` 仍会被读）。默认 `read`：草稿/发送工具在列表里，一调用就会提示你先开档。
 
 三种改法写的是**同一个文件**，下一句对话就生效，**不必** `grok mcp add`，也不必为改档新开终端。换仓库路径才需要再 add。
 
@@ -206,7 +206,7 @@ node dist/index.js setup
 
 网页邮箱 **SMTP 已开启**（和 IMAP 同一页，授权码同一套）。白名单为空时不能进入 send 档。真发信时还会再弹一张卡片展示 To/主题/正文。不要用 `grok --always-approve`。
 
-服务器强制：回复 To 取自原信；转发目标必须你指定且在白名单；无 BCC；每进程最多 5 封；验证码信不能读、回、转。
+服务器强制：回复 To 取自原信；转发目标必须你指定且在白名单；无 BCC；滚动一小时最多 5 封（记在磁盘上，Grok 重启也算）；验证码信不能读、回、转。
 
 #### 更新代码
 
@@ -321,9 +321,6 @@ IMAP `ID` 本程序会发。仍失败时，到网页重新开 IMAP 并换新授�
 
 **`grok mcp add` 报 `Invalid environment variable format: 'MAIL_USER'`。**  
 必须写成 `-e "MAIL_USER=${MAIL_USER}"`，不能只写 `-e MAIL_USER`。先确认当前终端里 `echo $MAIL_USER` 有值。
-
-**doctor 只有 6 个工具，我想要草稿/发送。**  
-`pnpm build` 后新开会话，列表里应有 `set_settings`。对 Grok 说「打开草稿」，或 `node dist/index.js config set-mode draft`。不要把档位写进 `.env`。
 
 **代码更新了但 Bot 还是旧行为。**  
 `pnpm build` 后新开会话或 `/mcps` 刷新。改档位用 `set_settings` / `config`，不必再 `add`。

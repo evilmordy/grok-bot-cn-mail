@@ -7,7 +7,7 @@ export function htmlToText(html: string): string {
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
     .replace(/<!--[\s\S]*?-->/g, "");
-  return convert(stripped, {
+  const text = convert(stripped, {
     wordwrap: false,
     selectors: [
       { selector: "script", format: "skip" },
@@ -16,6 +16,7 @@ export function htmlToText(html: string): string {
       { selector: "a", options: { ignoreHref: false } },
     ],
   });
+  return text.replace(/<[^>]*>/g, "").replace(/javascript:/gi, "");
 }
 
 export function pickBody(plain: string | undefined, html: string | undefined): string {

@@ -21,7 +21,7 @@ Usage:
   qqconnect config allow-sensitive on|off
 
 Secrets (.env): MAIL_USER / MAIL_AUTH_CODE
-Policy (.qqconnect.json): mode, send_allowlist, allow_sensitive
+Policy (.grok-bot-cn-mail.json or .qqconnect.json): mode, send_allowlist, allow_sensitive
 `);
 }
 

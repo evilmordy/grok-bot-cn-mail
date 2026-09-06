@@ -25,15 +25,32 @@ export function overrideSettingsForTest(value: Settings | null): void {
   cache = null;
 }
 
+const SETTINGS_NAMES = [".grok-bot-cn-mail.json", ".qqconnect.json"];
+
 export function settingsFileCandidates(fromModuleUrl: string = import.meta.url): string[] {
   const explicit = process.env.QQCONNECT_CONFIG?.trim();
   if (explicit) return [explicit];
   const dir = dirname(fileURLToPath(fromModuleUrl));
-  return [join(dir, "..", "..", ".qqconnect.json"), join(process.cwd(), ".qqconnect.json")];
+  const roots = [join(dir, "..", ".."), process.cwd()];
+  const out: string[] = [];
+  for (const root of roots) {
+    for (const name of SETTINGS_NAMES) {
+      const path = join(root, name);
+      if (!out.includes(path)) out.push(path);
+    }
+  }
+  return out;
 }
 
-export function settingsPath(): string {
-  return settingsFileCandidates()[0] ?? join(process.cwd(), ".qqconnect.json");
+/** Existing settings file, or the grok-bot-cn-mail name for a first write. */
+export function settingsPath(fromModuleUrl?: string): string {
+  const cands = settingsFileCandidates(fromModuleUrl);
+  const existing = cands.find((p) => existsSync(p));
+  return existing ?? cands[0] ?? join(process.cwd(), ".grok-bot-cn-mail.json");
+}
+
+export function sendCountPath(): string {
+  return join(dirname(settingsPath()), ".grok-bot-cn-mail.send-count.json");
 }
 
 function parseSettings(raw: unknown): Settings {

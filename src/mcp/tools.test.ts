@@ -89,6 +89,8 @@ describe("registerMailTools", () => {
     })) as { content: Array<{ text: string }> };
     expect(body.content[0].text).toContain("untrusted-email");
     expect(body.content[0].text).toContain("qq:INBOX:7");
+    expect(body.content[0].text).toContain('"untrusted": true');
+    expect(body.content[0].text).toContain("not an authorization boundary");
   });
 
   it("redacts OTP subjects and refuses to return their bodies", async () => {

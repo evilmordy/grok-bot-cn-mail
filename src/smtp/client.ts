@@ -1,16 +1,69 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import nodemailer from "nodemailer";
 import type { Account } from "../config/accounts.js";
+import { assertPublicMailHost } from "../config/presets.js";
 
-export const MAX_SENDS_PER_PROCESS = 5;
+export const MAX_SENDS_PER_WINDOW = 5;
+/** @deprecated use MAX_SENDS_PER_WINDOW */
+export const MAX_SENDS_PER_PROCESS = MAX_SENDS_PER_WINDOW;
+export const SEND_WINDOW_MS = 60 * 60 * 1000;
+
+type SendBucket = { startedAt: number; count: number };
+
+export type SendLimiterOptions = {
+  file?: string;
+  now?: () => number;
+  windowMs?: number;
+};
 
 export class SendLimiter {
-  private count = 0;
-  constructor(private readonly max = MAX_SENDS_PER_PROCESS) {}
+  private memory: SendBucket = { startedAt: 0, count: 0 };
+  private readonly windowMs: number;
+  private readonly now: () => number;
+
+  constructor(
+    private readonly max = MAX_SENDS_PER_WINDOW,
+    private readonly opts: SendLimiterOptions = {},
+  ) {
+    this.windowMs = opts.windowMs ?? SEND_WINDOW_MS;
+    this.now = opts.now ?? Date.now;
+  }
+
   take(): void {
-    if (this.count >= this.max) {
-      throw new Error(`send rate limit: at most ${this.max} messages per process`);
+    const bucket = this.load();
+    const t = this.now();
+    const current =
+      bucket.startedAt > 0 && t - bucket.startedAt < this.windowMs
+        ? bucket
+        : { startedAt: t, count: 0 };
+    if (current.count >= this.max) {
+      throw new Error(`send rate limit: at most ${this.max} messages per hour`);
     }
-    this.count += 1;
+    current.count += 1;
+    this.save(current);
+  }
+
+  private load(): SendBucket {
+    const file = this.opts.file;
+    if (!file || !existsSync(file)) return this.memory;
+    try {
+      const raw = JSON.parse(readFileSync(file, "utf8")) as Partial<SendBucket>;
+      const startedAt = typeof raw.startedAt === "number" ? raw.startedAt : 0;
+      const count = typeof raw.count === "number" ? raw.count : 0;
+      this.memory = { startedAt, count };
+    } catch {
+      this.memory = { startedAt: 0, count: 0 };
+    }
+    return this.memory;
+  }
+
+  private save(bucket: SendBucket): void {
+    this.memory = bucket;
+    const file = this.opts.file;
+    if (!file) return;
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, `${JSON.stringify(bucket)}\n`, "utf8");
   }
 }
 
@@ -29,6 +82,7 @@ export async function sendSmtp(account: Account, payload: SmtpPayload): Promise<
   if (!account.smtpHost) {
     throw new Error(`account ${account.id} has no SMTP host; set smtpHost`);
   }
+  await assertPublicMailHost(account.smtpHost);
   const transport = nodemailer.createTransport({
     host: account.smtpHost,
     port: account.smtpPort || 465,
