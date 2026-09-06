@@ -103,6 +103,8 @@ export type OutboundResult = {
 
 export type MailBackend = {
   listAccounts(): AccountInfo[];
+  /** Re-read env / `.env` so a newly bound mailbox appears without killing the MCP process. */
+  reloadAccounts(): void;
   listFolders(accountId: string): Promise<FolderInfo[]>;
   search(query: SearchQuery): Promise<MessageMeta[]>;
   getMessage(accountId: string, folder: string, uid: number): Promise<MessageBody>;

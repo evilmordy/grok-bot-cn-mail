@@ -114,7 +114,10 @@ describe("registerMailTools", () => {
     const listed = (await calls.get("list_accounts")!({})) as { content: Array<{ text: string }> };
     expect(listed.content[0].text).toContain("you@qq.com");
     expect(listed.content[0].text).toContain("guide");
-    expect(listed.content[0].text).not.toMatch(/authCode|password/i);
+    expect(listed.content[0].text).toContain("MAIL_USER_2");
+    expect(listed.content[0].text).toContain("密钥框");
+    expect(listed.content[0].text).toMatch(/改仓库/);
+    expect(listed.content[0].text).not.toMatch(/password/i);
 
     const body = (await calls.get("get_message")!({
       uid: 7,
@@ -269,7 +272,8 @@ describe("registerMailTools", () => {
     const calls = collect();
     const r = (await calls.get("get_settings")!({})) as { content: Array<{ text: string }> };
     expect(r.content[0].text).toContain("默认只读");
-    expect(r.content[0].text).not.toMatch(/MAIL_AUTH_CODE|authCode/i);
+    expect(r.content[0].text).toContain("MAIL_USER_2");
+    expect(r.content[0].text).not.toMatch(/password/i);
   });
 
   it("set_settings to send without allowlist fails", async () => {

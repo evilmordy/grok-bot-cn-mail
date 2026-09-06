@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { loadAccounts } from "./accounts.js";
+import { addMailboxHint, loadAccounts } from "./accounts.js";
 
 const KEYS = [
   "MAIL_USER",
@@ -73,5 +73,20 @@ describe("loadAccounts", () => {
     expect(accts.map((a) => a.id)).toEqual(["default", "work"]);
     expect(accts[1]?.host).toBe("imap.163.com");
     expect(accts[1]?.smtpHost).toBe("smtp.163.com");
+  });
+});
+
+describe("addMailboxHint", () => {
+  it("names slot 2 after one account and never includes secret values", () => {
+    const hint = addMailboxHint(1);
+    expect(hint.next_slot).toBe(2);
+    expect(hint.env).toEqual({
+      MAIL_USER: "MAIL_USER_2",
+      MAIL_AUTH_CODE: "MAIL_AUTH_CODE_2",
+      MAIL_ACCOUNT_ID: "MAIL_ACCOUNT_ID_2",
+    });
+    expect(hint.guide).toMatch(/密钥框/);
+    expect(hint.guide).toMatch(/改仓库/);
+    expect(hint.guide).not.toMatch(/@qq\.com|@163\.com/);
   });
 });

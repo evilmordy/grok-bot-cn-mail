@@ -11,6 +11,7 @@ import {
   settingsGuide,
   type ConnectMode,
 } from "../config/settings.js";
+import { addMailboxHint } from "../config/accounts.js";
 import { clampLimit } from "../imap/search.js";
 import { capRecipients, collectAddresses, replyTargets } from "../mail/compose.js";
 import { forwardSubject, replySubject } from "../mail/rfc822.js";
@@ -269,6 +270,7 @@ function currentAllowlist(): string[] {
 }
 
 function resolveAccountId(backend: MailBackend, id?: string): string {
+  backend.reloadAccounts();
   const accounts = backend.listAccounts();
   if (id) {
     if (!accounts.some((a) => a.id === id)) throw new Error(`unknown account ${id}`);
@@ -292,15 +294,23 @@ export function registerMailTools(register: Register, backend: MailBackend): voi
     "list_accounts",
     {
       description:
-        "列出已绑定邮箱（不含密钥）。新任务应先 get_settings；多个邮箱时后续工具要带 account_id。",
+        "列出已绑定邮箱（不含密钥）。新任务应先 get_settings；多个邮箱时后续工具要带 account_id。用户要加邮箱时看返回的 add_mailbox：只报变量名，让用户填密钥框，不要改仓库或 MCP 启动命令。",
       inputSchema: toolSchemas.list_accounts,
     },
-    async () =>
-      json({
-        accounts: backend.listAccounts(),
-        settings: getSettings(),
-        guide: settingsGuide(),
-      }),
+    async () => {
+      try {
+        backend.reloadAccounts();
+        const accounts = backend.listAccounts();
+        return json({
+          accounts,
+          settings: getSettings(),
+          guide: settingsGuide(),
+          add_mailbox: addMailboxHint(accounts.length),
+        });
+      } catch (err) {
+        return fail(err instanceof Error ? err.message : String(err));
+      }
+    },
   );
 
   register(
@@ -447,15 +457,23 @@ export function registerMailTools(register: Register, backend: MailBackend): voi
     "get_settings",
     {
       description:
-        "查看当前档位（read/draft/send）和发送白名单，不含密钥。每个新任务应先调用。默认只读即可搜和看；用户要写信再考虑草稿。不要主动推销发送。",
+        "查看当前档位（read/draft/send）和发送白名单，不含密钥。每个新任务应先调用。用户要加邮箱时看 add_mailbox，只报变量名让用户填密钥框，不要改仓库。",
       inputSchema: toolSchemas.get_settings,
     },
-    async () =>
-      json({
-        ...getSettings(),
-        accounts: backend.listAccounts(),
-        guide: settingsGuide(),
-      }),
+    async () => {
+      try {
+        backend.reloadAccounts();
+        const accounts = backend.listAccounts();
+        return json({
+          ...getSettings(),
+          accounts,
+          guide: settingsGuide(),
+          add_mailbox: addMailboxHint(accounts.length),
+        });
+      } catch (err) {
+        return fail(err instanceof Error ? err.message : String(err));
+      }
+    },
   );
 
   register(

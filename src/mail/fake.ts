@@ -65,6 +65,8 @@ export class FakeMailBackend implements MailBackend {
     return this.accounts;
   }
 
+  reloadAccounts(): void {}
+
   async listFolders(accountId: string): Promise<FolderInfo[]> {
     const list = this.folders[accountId];
     if (!list) throw new Error(`unknown account ${accountId}`);

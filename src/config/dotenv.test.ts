@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { applyDotEnvText } from "./dotenv.js";
+import { afterEach, describe, expect, it } from "vitest";
+import { applyDotEnvText, envFileCandidates } from "./dotenv.js";
 
 describe("applyDotEnvText", () => {
   it("fills empty keys and ignores comments", () => {
@@ -24,5 +24,17 @@ describe("applyDotEnvText", () => {
     applyDotEnvText(`MAIL_AUTH_CODE='ab cd'\nMAIL_USER="a@b.com"\n`, env);
     expect(env.MAIL_AUTH_CODE).toBe("ab cd");
     expect(env.MAIL_USER).toBe("a@b.com");
+  });
+});
+
+describe("envFileCandidates", () => {
+  afterEach(() => {
+    delete process.env.GROK_PLUGIN_ROOT;
+    delete process.env.QQCONNECT_DOTENV;
+  });
+
+  it("includes GROK_PLUGIN_ROOT/.env so plugin and workspace files can both apply", () => {
+    process.env.GROK_PLUGIN_ROOT = "/tmp/qqconnect-plugin";
+    expect(envFileCandidates()).toContain("/tmp/qqconnect-plugin/.env");
   });
 });

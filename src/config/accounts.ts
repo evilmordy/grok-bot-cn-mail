@@ -164,3 +164,35 @@ export function publicAccountView(account: Account): {
     host: account.host,
   };
 }
+
+const MAX_ENV_SLOTS = 20;
+
+export type AddMailboxHint = {
+  next_slot: number | null;
+  env: { MAIL_USER: string; MAIL_AUTH_CODE: string; MAIL_ACCOUNT_ID: string } | null;
+  guide: string;
+};
+
+/** How to bind the next mailbox. Never includes secret values. */
+export function addMailboxHint(accountCount: number): AddMailboxHint {
+  if (accountCount >= MAX_ENV_SLOTS) {
+    return { next_slot: null, env: null, guide: "已达到 20 个邮箱上限。" };
+  }
+  const n = accountCount + 1;
+  const suffix = n <= 1 ? "" : `_${n}`;
+  const env = {
+    MAIL_USER: `MAIL_USER${suffix}`,
+    MAIL_AUTH_CODE: `MAIL_AUTH_CODE${suffix}`,
+    MAIL_ACCOUNT_ID: `MAIL_ACCOUNT_ID${suffix}`,
+  };
+  return {
+    next_slot: n,
+    env,
+    guide: [
+      `再加邮箱：请用户在 MCP 密钥框填写 ${env.MAIL_USER}、${env.MAIL_AUTH_CODE}，可选 ${env.MAIL_ACCOUNT_ID}（短名）。`,
+      "邮箱地址和授权码都是密钥：禁止发到聊天、禁止写进回复、禁止为加号去改仓库或 MCP 启动命令。",
+      "Grok Bot：只报变量名，用户在插件密钥框填好后重载 qqconnect（不要 source .env，不要 run-mcp.sh）。",
+      "本机 TUI：可在 .env 写同名变量；下次 list_accounts / get_settings 会重新读取，不必杀掉 MCP。",
+    ].join(""),
+  };
+}

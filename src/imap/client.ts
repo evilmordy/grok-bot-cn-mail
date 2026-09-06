@@ -1,6 +1,6 @@
 import { ImapFlow } from "imapflow";
-import type { Account } from "../config/accounts.js";
-import { publicAccountView } from "../config/accounts.js";
+import { loadAccounts, publicAccountView, type Account } from "../config/accounts.js";
+import { loadDotEnv } from "../config/dotenv.js";
 import { assertPublicMailHost } from "../config/presets.js";
 import { logError, logInfo, logWarn } from "../log.js";
 import { collectAddresses, replyTargets } from "../mail/compose.js";
@@ -64,10 +64,24 @@ export class ImapMailBackend implements MailBackend {
   >();
   private readonly tails = new Map<string, Promise<unknown>>();
 
-  constructor(private readonly accounts: Account[]) {}
+  constructor(private accounts: Account[]) {}
 
   listAccounts(): AccountInfo[] {
     return this.accounts.map(publicAccountView);
+  }
+
+  reloadAccounts(): void {
+    loadDotEnv();
+    const next = loadAccounts();
+    const nextById = new Map(next.map((a) => [a.id, a]));
+    for (const id of [...this.slots.keys()]) {
+      const neu = nextById.get(id);
+      const old = this.accounts.find((a) => a.id === id);
+      if (!neu || !old || neu.address !== old.address || neu.host !== old.host || neu.authCode !== old.authCode) {
+        void this.drop(id);
+      }
+    }
+    this.accounts = next;
   }
 
   private account(id: string): Account {

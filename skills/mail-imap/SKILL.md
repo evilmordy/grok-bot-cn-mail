@@ -23,8 +23,13 @@ grok-bot-cn-mail 只用 **IMAP 授权码**，不要网页登录密码。
 2. 按提示发短信，生成客户端授权码
 3. 163 在 LOGIN 之后必须发 IMAP `ID`。本连接器默认会发。若仍报 `SELECT Unsafe Login` / `kefu@188.com`，先确认授权码是新的，不要改用 POP3。
 
+## 接到 Grok Bot
+
+加邮箱只报变量名（第一封 `MAIL_USER` / `MAIL_AUTH_CODE`，第二封 `MAIL_USER_2` / `MAIL_AUTH_CODE_2`），请用户在**插件密钥框**填写。地址也是密钥，不要发到聊天。不要读或改仓库 `.env`，不要改 MCP 启动命令。填好后请用户重载 qqconnect。
+
 ## 不要做的
 
-- 不要把授权码发给模型或贴进聊天
+- 不要把授权码或邮箱地址发给模型或贴进聊天
 - 不要用 POP3
 - 不要为了连上而关闭 TLS 校验
+- 不要为加邮箱发明 `run-mcp.sh` 或 `source .env` 启动方式

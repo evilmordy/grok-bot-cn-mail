@@ -48,6 +48,8 @@ grok mcp doctor qqconnect
 
 密钥框和填 GitHub token 同类。插件对账号下**所有 Bot**共用。不能接到 grok.com 网页版（需要公网 HTTPS；不要打隧道）。
 
+再加 163/126 等第二邮箱时：**还是密钥框**，变量名 `MAIL_USER_2`、`MAIL_AUTH_CODE_2`，可选 `MAIL_ACCOUNT_ID_2`。只报变量名，不要让 Bot 把地址写进聊天，也不要让它改仓库、`.env` 或 MCP 启动命令。填好后重载 qqconnect。本机 TUI 才把同名变量写进 `.env`。
+
 ## 测试
 
 - `pnpm test` 和 CI：假邮箱后端，不登录真 IMAP。

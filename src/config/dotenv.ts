@@ -37,18 +37,25 @@ export function applyDotEnvText(text: string, env: NodeJS.ProcessEnv = process.e
 
 export function envFileCandidates(fromModuleUrl: string = import.meta.url): string[] {
   const dir = dirname(fileURLToPath(fromModuleUrl));
-  return [join(dir, "..", "..", ".env"), join(process.cwd(), ".env")];
+  const out: string[] = [];
+  const pluginRoot = process.env.GROK_PLUGIN_ROOT?.trim();
+  if (pluginRoot) out.push(join(pluginRoot, ".env"));
+  out.push(join(dir, "..", "..", ".env"), join(process.cwd(), ".env"));
+  const explicit = process.env.QQCONNECT_DOTENV?.trim();
+  if (explicit) out.push(explicit);
+  return [...new Set(out)];
 }
 
-/** Load repo `.env` if present. Safe to call more than once. */
+/** Load every candidate `.env`. Later files fill keys that are still empty. Safe to call more than once. */
 export function loadDotEnv(): string | undefined {
   const seen = new Set<string>();
+  let first: string | undefined;
   for (const file of envFileCandidates()) {
     if (seen.has(file) || !existsSync(file)) continue;
     seen.add(file);
     const applied = applyDotEnvText(readFileSync(file, "utf8"));
     logInfo("env.dotenv", { file, appliedKeys: applied.length });
-    return file;
+    first ??= file;
   }
-  return undefined;
+  return first;
 }

@@ -32,7 +32,11 @@ node dist/index.js setup
 
 ## 多账号
 
-第二封用 `_2`，不要把授权码写进聊天：
+不要把地址或授权码发进聊天。`list_accounts` / `get_settings` 会返回下一槽的变量名（`add_mailbox`）。
+
+**Grok Bot：** 在插件密钥框填写 `MAIL_USER_2`、`MAIL_AUTH_CODE_2`，可选 `MAIL_ACCOUNT_ID_2`。填好后重载 qqconnect。不要改仓库、不要写 `.env`、不要改 MCP 启动命令。
+
+**本机 TUI / `.env`：** 第二封用 `_2`：
 
 ```
 MAIL_USER=me@qq.com
@@ -41,6 +45,8 @@ MAIL_USER_2=work@163.com
 MAIL_AUTH_CODE_2=……
 MAIL_ACCOUNT_ID_2=work
 ```
+
+写好 `.env` 后不必杀掉 MCP：下次 `list_accounts` 会重新读环境变量。
 
 JSON 里只放地址，授权码指向环境变量名：`authCodeEnv`，禁止内联 `authCode`。自建邮箱须公网 `host`、993、TLS。内网和云元数据 IP 会被拒绝。
 
