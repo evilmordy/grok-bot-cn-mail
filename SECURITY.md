@@ -33,4 +33,4 @@ Use GitHub **Private vulnerability reporting** (Security → Report a vulnerabil
 - Accept a QQ/163 web login password
 - Guarantee that every secret is hidden (image OTPs, unusual wording, and DLP false positives remain)
 
-Enabling `send` gives one process private mail, untrusted content, and outbound SMTP (Willison's lethal trifecta). The allowlist plus elicitation card shrink the blast radius; they are not a proof of safety. Do not run send mode with Grok `--always-approve`.
+Enabling `send` gives one process private mail, untrusted content, and outbound SMTP (Willison's lethal trifecta). The allowlist plus elicitation card shrink the blast radius; they are not a proof of safety. Do not run send mode with Grok `--always-approve`. Pull requests that remove send confirmation will be rejected.

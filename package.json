@@ -25,7 +25,9 @@
     "plugin",
     "skills",
     "SECURITY.md",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md",
+    "docs"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
