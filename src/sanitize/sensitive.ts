@@ -28,6 +28,10 @@ function domainOfFrom(from?: string): string {
   return at > 0 ? addr.slice(at + 1).toLowerCase() : "";
 }
 
+function hostIsOrSubdomain(domain: string, root: string): boolean {
+  return domain === root || domain.endsWith(`.${root}`);
+}
+
 export function classifyEnvelope(from?: string, subject?: string): SensitiveClass | undefined {
   if (allowSensitive()) return undefined;
   const sub = subject ?? "";
@@ -43,9 +47,9 @@ export function classifyEnvelope(from?: string, subject?: string): SensitiveClas
     return "otp";
   }
   if (
-    (domain.endsWith("github.com") ||
-      domain.endsWith("steampowered.com") ||
-      domain.endsWith("appleid.apple.com")) &&
+    (hostIsOrSubdomain(domain, "github.com") ||
+      hostIsOrSubdomain(domain, "steampowered.com") ||
+      hostIsOrSubdomain(domain, "appleid.apple.com")) &&
     /(security|recover|oauth|verification|added to your account)/i.test(sub)
   ) {
     return "recovery";

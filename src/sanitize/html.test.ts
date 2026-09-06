@@ -12,6 +12,14 @@ describe("htmlToText", () => {
     expect(text.toLowerCase()).not.toContain("alert");
     expect(text).not.toMatch(/<script/i);
   });
+
+  it("strips leftover tags and dangerous URL schemes", () => {
+    const nested = htmlToText(`<div><scrip<script>t></script></div><p>Hi</p>`);
+    expect(nested).toContain("Hi");
+    expect(nested).not.toMatch(/<script/i);
+    const schemes = htmlToText(`<a href="javascript:alert(1)">x</a><a href="data:text/html,hi">y</a>`);
+    expect(schemes.toLowerCase()).not.toMatch(/javascript:|data:|vbscript:/);
+  });
 });
 
 describe("pickBody", () => {

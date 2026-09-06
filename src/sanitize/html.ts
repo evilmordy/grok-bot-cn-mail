@@ -2,12 +2,18 @@ import { convert } from "html-to-text";
 
 export const DEFAULT_BODY_LIMIT = 50_000;
 
+function replaceUntilStable(input: string, pattern: RegExp, replacement: string): string {
+  let previous = "";
+  let current = input;
+  while (current !== previous) {
+    previous = current;
+    current = current.replace(pattern, replacement);
+  }
+  return current;
+}
+
 export function htmlToText(html: string): string {
-  const stripped = html
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/<!--[\s\S]*?-->/g, "");
-  const text = convert(stripped, {
+  const text = convert(html, {
     wordwrap: false,
     selectors: [
       { selector: "script", format: "skip" },
@@ -16,7 +22,8 @@ export function htmlToText(html: string): string {
       { selector: "a", options: { ignoreHref: false } },
     ],
   });
-  return text.replace(/<[^>]*>/g, "").replace(/javascript:/gi, "");
+  const noTags = replaceUntilStable(text, /<[^>]*>/g, "");
+  return replaceUntilStable(noTags, /(?:javascript|data|vbscript):/gi, "");
 }
 
 export function pickBody(plain: string | undefined, html: string | undefined): string {

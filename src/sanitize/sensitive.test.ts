@@ -27,6 +27,14 @@ describe("classifyEnvelope", () => {
     ).toBe("recovery");
   });
 
+  it("does not treat lookalike domains as GitHub or Apple", () => {
+    const githubSub = "[GitHub] A third-party OAuth application has been added to your account";
+    expect(classifyEnvelope("noreply@notgithub.com", githubSub)).toBeUndefined();
+    expect(classifyEnvelope("noreply@notifications.github.com", githubSub)).toBe("recovery");
+    expect(classifyEnvelope("a@evilappleid.apple.com", "Apple ID verification")).toBeUndefined();
+    expect(classifyEnvelope("a@appleid.apple.com", "Apple ID verification")).toBe("recovery");
+  });
+
   it("does not block ordinary work mail or injection-as-data", () => {
     expect(classifyEnvelope("boss@example.com", "Q4 renewal")).toBeUndefined();
     expect(
