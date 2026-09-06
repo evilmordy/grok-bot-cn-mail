@@ -89,8 +89,14 @@ afterEach(() => {
 
 describe("tool schemas", () => {
   it("does not use email() lookahead validators", () => {
-    const json = JSON.stringify(toolSchemas.search_messages);
-    expect(json).not.toMatch(/\(\?[=!]/);
+    expect(JSON.stringify(toolSchemas)).not.toMatch(/\(\?[=!]/);
+  });
+
+  it("rejects non-integer uid and IMAP-injection part ids", () => {
+    expect(() => toolSchemas.get_message.parse({ uid: 1.5 })).toThrow();
+    expect(() => toolSchemas.get_message.parse({ uid: 0 })).toThrow();
+    expect(() => toolSchemas.get_attachment.parse({ uid: 7, part: "1] HEADER" })).toThrow();
+    expect(toolSchemas.get_attachment.parse({ uid: 7, part: "1.2" }).part).toBe("1.2");
   });
 });
 
