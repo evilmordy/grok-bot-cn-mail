@@ -2,7 +2,7 @@ import { assertAttachmentAllowed } from "../sanitize/attachments.js";
 import { pickBody, truncateBody } from "../sanitize/html.js";
 import { applyBodyGate, assertNotBlocked, redactSearchHit } from "../sanitize/present.js";
 import { messageId, wrapUntrustedEmail } from "../sanitize/untrusted.js";
-import { replyTargets } from "./compose.js";
+import { collectAddresses, replyTargets } from "./compose.js";
 import {
   assertComposeBody,
   forwardSubject,
@@ -214,9 +214,10 @@ export class FakeMailBackend implements MailBackend {
   async sendDraft(accountId: string, uid: number): Promise<OutboundResult> {
     const orig = await this.getMessage(accountId, "Drafts", uid);
     assertNotBlocked(orig, "send");
-    const to = orig.to ? orig.to.split(/,\s*/) : [];
+    const to = collectAddresses(orig.to);
+    const cc = collectAddresses(orig.cc);
     if (to.length === 0) throw new Error("draft has no To header");
-    return this.recordSend(accountId, to, orig.cc ? orig.cc.split(/,\s*/) : [], orig.subject || "(no subject)", orig.body);
+    return this.recordSend(accountId, to, cc, orig.subject || "(no subject)", orig.body);
   }
 
   private requireAccount(id: string): AccountInfo {

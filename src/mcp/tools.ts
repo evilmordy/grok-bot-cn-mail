@@ -13,6 +13,7 @@ import {
 } from "../config/settings.js";
 import { clampLimit } from "../imap/search.js";
 import { capRecipients, collectAddresses, replyTargets } from "../mail/compose.js";
+import { forwardSubject, replySubject } from "../mail/rfc822.js";
 import type { MailBackend, OutboundResult } from "../mail/types.js";
 import { MAX_SENDS_PER_WINDOW, SendLimiter } from "../smtp/client.js";
 
@@ -641,7 +642,7 @@ export function registerMailTools(register: Register, backend: MailBackend): voi
         const cancelled = await confirmSend(extra, {
           to: rec.to,
           cc: rec.cc,
-          subject: orig.subject ? `Re: ${orig.subject}` : "Re:",
+          subject: replySubject(orig.subject),
           body: q.body,
         });
         if (cancelled) return cancelled;
@@ -682,7 +683,7 @@ export function registerMailTools(register: Register, backend: MailBackend): voi
         const cancelled = await confirmSend(extra, {
           to: rec.to,
           cc: rec.cc,
-          subject: orig.subject ? `Fwd: ${orig.subject}` : "Fwd:",
+          subject: forwardSubject(orig.subject),
           body: q.comment ?? "",
         });
         if (cancelled) return cancelled;

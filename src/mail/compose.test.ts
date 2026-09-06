@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { replyTargets } from "./compose.js";
+import { collectAddresses, replyTargets } from "./compose.js";
 
 describe("replyTargets", () => {
   it("locks To to original From and ignores body-supplied attackers", () => {
@@ -11,6 +11,10 @@ describe("replyTargets", () => {
     });
     expect(rec.to).toEqual(["boss@example.com"]);
     expect(rec.cc).toEqual([]);
+  });
+
+  it("normalizes display-name To the same way as send_email", () => {
+    expect(collectAddresses("Boss <boss@example.com>")).toEqual(["boss@example.com"]);
   });
 
   it("drops self on reply-all", () => {

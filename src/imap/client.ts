@@ -3,7 +3,7 @@ import type { Account } from "../config/accounts.js";
 import { publicAccountView } from "../config/accounts.js";
 import { assertPublicMailHost } from "../config/presets.js";
 import { logError, logInfo, logWarn } from "../log.js";
-import { replyTargets } from "../mail/compose.js";
+import { collectAddresses, replyTargets } from "../mail/compose.js";
 import { attachmentNodes, textParts, type MimeNode } from "../mail/mime.js";
 import {
   assertComposeBody,
@@ -39,7 +39,7 @@ const VERSION = "0.1.0";
 const IMAP_IDLE_MS = 45_000;
 
 function imapUsable(client: ImapFlow): boolean {
-  return Boolean((client as unknown as { usable?: boolean }).usable);
+  return Boolean(client.usable);
 }
 
 function envelopeAddr(
@@ -469,8 +469,8 @@ export class ImapMailBackend implements MailBackend {
     const draftsPath = await this.withConnection(account, (c) => this.specialUsePath(c, "\\Drafts"));
     const orig = await this.getMessage(accountId, draftsPath, uid);
     assertNotBlocked(orig, "send");
-    const to = orig.to ? orig.to.split(/,\s*/) : [];
-    const cc = orig.cc ? orig.cc.split(/,\s*/) : [];
+    const to = collectAddresses(orig.to);
+    const cc = collectAddresses(orig.cc);
     if (to.length === 0) throw new Error("draft has no To header");
     return this.deliver(accountId, {
       to,

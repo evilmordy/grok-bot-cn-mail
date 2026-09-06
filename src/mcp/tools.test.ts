@@ -54,6 +54,15 @@ function backend() {
             },
           ],
         },
+        {
+          uid: 10,
+          folder: "Drafts",
+          from: "you@qq.com",
+          to: "Boss <boss@example.com>",
+          date: "2026-09-04T00:00:00.000Z",
+          subject: "hello",
+          plain: "hi",
+        },
       ],
     },
   );
@@ -160,6 +169,21 @@ describe("registerMailTools", () => {
       yes,
     )) as { isError?: boolean };
     expect(denied.isError).toBe(true);
+  });
+
+  it("sends a draft after parsing angle-bracket To", async () => {
+    overrideSettingsForTest({
+      mode: "send",
+      send_allowlist: ["boss@example.com"],
+      allow_sensitive: false,
+    });
+    const calls = collect();
+    const sent = (await calls.get("send_draft")!({ account_id: "qq", uid: 10 }, yes)) as {
+      isError?: boolean;
+      content: Array<{ text: string }>;
+    };
+    expect(sent.isError).toBeFalsy();
+    expect(JSON.parse(sent.content[0].text).to).toEqual(["boss@example.com"]);
   });
 
   it("sends after mode send, allowlist, and elicitation", async () => {

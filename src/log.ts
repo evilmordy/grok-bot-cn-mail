@@ -2,9 +2,6 @@ const SECRET_KEYS = /auth.?code|password|pass\b|secret|token|authorization/i;
 
 function redactValue(key: string, value: unknown): unknown {
   if (SECRET_KEYS.test(key)) return "[redacted]";
-  if (typeof value === "string" && value.length > 8 && SECRET_KEYS.test(key)) {
-    return "[redacted]";
-  }
   return value;
 }
 
@@ -28,7 +25,7 @@ export function logError(event: string, err: unknown, fields: Record<string, unk
     event,
     message: safe,
     ts: new Date().toISOString(),
-    ...fields,
   };
+  for (const [k, v] of Object.entries(fields)) body[k] = redactValue(k, v);
   process.stderr.write(`${JSON.stringify(body)}\n`);
 }
