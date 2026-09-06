@@ -124,6 +124,7 @@ describe("registerMailTools", () => {
     expect(listed.content[0].text).toContain("guide");
     expect(listed.content[0].text).toContain("MAIL_USER_2");
     expect(listed.content[0].text).toContain("unbind_mailbox");
+    expect(listed.content[0].text).toContain("send_confirm");
     expect(listed.content[0].text).toContain("needs_restart");
     expect(listed.content[0].text).toContain("密钥框");
     expect(listed.content[0].text).toMatch(/改仓库/);
@@ -203,6 +204,23 @@ describe("registerMailTools", () => {
     };
     expect(sent.isError).toBeFalsy();
     expect(JSON.parse(sent.content[0].text).to).toEqual(["boss@example.com"]);
+  });
+
+  it("explains Grok Bot has no MCP card when the host declines elicitation", async () => {
+    overrideSettingsForTest({
+      mode: "send",
+      send_allowlist: ["you@qq.com"],
+      allow_sensitive: false,
+    });
+    const calls = collect();
+    const denied = (await calls.get("send_email")!(
+      { account_id: "qq", to: "you@qq.com", subject: "hi", body: "hello" },
+      { inputResponses: { confirm: { action: "decline" } } },
+    )) as { isError?: boolean; content: Array<{ text: string }> };
+    expect(denied.isError).toBe(true);
+    expect(denied.content[0].text).toMatch(/CONFIRMATION_UNSUPPORTED/);
+    expect(denied.content[0].text).toMatch(/Auto-review/);
+    expect(denied.content[0].text).not.toMatch(/^send cancelled/);
   });
 
   it("returns input_required on the first send hop instead of send cancelled", async () => {

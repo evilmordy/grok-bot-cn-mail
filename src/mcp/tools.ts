@@ -167,6 +167,9 @@ function confirmSchema() {
   };
 }
 
+const ELICIT_DECLINED =
+  "CONFIRMATION_UNSUPPORTED: 宿主回了 Decline，且 Grok Bot 通常不会弹出 MCP 确认卡。「已允许一次 / 始终允许」只是 Auto-review，不是发信确认。信未发送。请用网页邮箱发送，或在 Grok Build TUI（有 qqconnect Accept/Decline 卡）里发。不要让用户去点一张看不见的卡。";
+
 type ConfirmPreview = {
   to: string[];
   cc: string[];
@@ -212,8 +215,7 @@ async function confirmSend(
   if (view.kind === "elicit") {
     const action = view.action.toLowerCase();
     if (action === "accept") return undefined;
-    if (action === "decline") return fail("send cancelled (elicit action=decline)");
-    if (action === "cancel") return fail("send cancelled (elicit action=cancel)");
+    if (action === "decline" || action === "cancel") return fail(`${ELICIT_DECLINED} (elicit action=${action})`);
   }
 
   try {
@@ -266,6 +268,8 @@ function mailboxSnapshot(backend: MailBackend) {
     add_mailbox: addMailboxHint(accounts.length),
     remove_mailbox: unbindMailboxHint(accounts),
     server: serverStatus(),
+    send_confirm:
+      "SMTP 需要 MCP elicitation 卡（Accept/Decline）。Grok Bot 没有这张卡；聊天里的「允许使用已连接的服务」不是发信确认。Bot 端请 save_draft，用户在网页发送。",
   };
 }
 
