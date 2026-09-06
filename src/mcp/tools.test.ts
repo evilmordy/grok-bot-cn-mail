@@ -124,6 +124,7 @@ describe("registerMailTools", () => {
     expect(listed.content[0].text).toContain("guide");
     expect(listed.content[0].text).toContain("MAIL_USER_2");
     expect(listed.content[0].text).toContain("unbind_mailbox");
+    expect(listed.content[0].text).toContain("needs_restart");
     expect(listed.content[0].text).toContain("密钥框");
     expect(listed.content[0].text).toMatch(/改仓库/);
     expect(listed.content[0].text).not.toMatch(/password/i);

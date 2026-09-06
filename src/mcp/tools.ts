@@ -16,6 +16,7 @@ import { clampLimit } from "../imap/search.js";
 import { capRecipients, collectAddresses, replyTargets } from "../mail/compose.js";
 import { forwardSubject, replySubject } from "../mail/rfc822.js";
 import type { MailBackend, OutboundResult } from "../mail/types.js";
+import { serverStatus } from "../runtime.js";
 import { MAX_SENDS_PER_WINDOW, SendLimiter } from "../smtp/client.js";
 
 const accountId = z
@@ -310,6 +311,7 @@ export function registerMailTools(register: Register, backend: MailBackend): voi
           guide: settingsGuide(),
           add_mailbox: addMailboxHint(accounts.length),
           remove_mailbox: unbindMailboxHint(accounts),
+          server: serverStatus(),
         });
       } catch (err) {
         return fail(err instanceof Error ? err.message : String(err));
@@ -474,6 +476,7 @@ export function registerMailTools(register: Register, backend: MailBackend): voi
           guide: settingsGuide(),
           add_mailbox: addMailboxHint(accounts.length),
           remove_mailbox: unbindMailboxHint(accounts),
+          server: serverStatus(),
         });
       } catch (err) {
         return fail(err instanceof Error ? err.message : String(err));

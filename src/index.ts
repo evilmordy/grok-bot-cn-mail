@@ -7,6 +7,7 @@ import { getSettings } from "./config/settings.js";
 import { ImapMailBackend } from "./imap/client.js";
 import { logError, logInfo } from "./log.js";
 import { createMailServer } from "./mcp/server.js";
+import { initRuntime, watchScriptOrExit } from "./runtime.js";
 
 function usage(): void {
   process.stderr.write(`grok-bot-cn-mail (qqconnect) — IMAP MCP for Grok Bot (read by default; draft/send via config)
@@ -55,6 +56,9 @@ async function main(): Promise<void> {
     mode: settings.mode,
     allowlistCount: settings.send_allowlist.length,
   });
+
+  initRuntime(import.meta.url);
+  watchScriptOrExit();
 
   const handle = serveStdio(() => createMailServer(backend));
 

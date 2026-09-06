@@ -79,6 +79,10 @@ JSON 里只放地址，授权码指向环境变量名：`authCodeEnv`，禁止�
 
 没有 BCC。没有让模型直接敲 IMAP/SMTP 的入口。
 
+## 更新 MCP
+
+先停止 qqconnect，再换文件，再启动。不要在 connected 时删掉插件目录。`get_settings` 的 `server.needs_restart` 为真时，停再开即可，不是 IMAP 坏了。
+
 ## 常见问题
 
 **改了 `.env` 但提示没配置邮箱。** 文件须在仓库根目录，名字就是 `.env`。Grok 里用 `-e` 写过的同名变量会盖住文件。

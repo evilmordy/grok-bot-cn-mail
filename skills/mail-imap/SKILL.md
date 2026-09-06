@@ -29,6 +29,8 @@ grok-bot-cn-mail 只用 **IMAP 授权码**，不要网页登录密码。
 
 解绑调用 `unbind_mailbox`（确认卡）。不要手改 `.env` 或杀 MCP。确认后请用户在密钥框删除工具返回的变量名并重载。不删除服务器上的邮件。
 
+Not connected / 工具数对不上：先 `get_settings`。`server.needs_restart` 为真则请用户停止再启动 qqconnect，不要 rm -rf，不要当登录失败排查。
+
 ## 不要做的
 
 - 不要把授权码或邮箱地址发给模型或贴进聊天

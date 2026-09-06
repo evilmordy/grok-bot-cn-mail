@@ -42,6 +42,8 @@ grok mcp doctor qqconnect
 
 `qqconnect` 是已安装用户的 MCP 短名，不用改。新开会话后可以说：列出邮箱，搜 INBOX 最近未读。
 
+**更新：** 先停止 qqconnect，再换文件 / `pnpm build`，再启动。不要在还连着时 `rm -rf` 目录。`get_settings` 里 `server.needs_restart` 为真时，只需停再开，不必当邮箱故障排查。
+
 **Grok Bot**：本机 `pnpm check` 通过后，对 Bot 说（只报变量名，不报值）：
 
 > 添加自定义 MCP，名字 qqconnect，命令 `node`，参数写成你本机 `dist/index.js` 的绝对路径。请用系统密钥输入框填写 `MAIL_USER`、`MAIL_AUTH_CODE`（IMAP 授权码，不是网页密码）。不要把值写进对话。
