@@ -171,14 +171,7 @@ function unsafeSkipConfirm(): boolean {
 function confirmSchema() {
   return {
     type: "object" as const,
-    properties: {
-      confirm: {
-        type: "boolean" as const,
-        title: "Send",
-        description: "Accept only if To/Subject/body match what you asked to send",
-      },
-    },
-    required: ["confirm"],
+    properties: {},
   };
 }
 
@@ -204,19 +197,12 @@ function confirmMessage(preview: ConfirmPreview): string {
     .join("\n");
 }
 
-/** Map an elicitation result. Accept = yes unless confirm is explicitly false. cancel = try the other protocol path. */
-function elicitationDecision(result: {
-  action?: string;
-  content?: Record<string, unknown>;
-}): "yes" | "no" | "retry" {
+/** Grok's card is Accept vs Decline. Ignore form booleans (unchecked defaults to false and used to abort sends). */
+function elicitationDecision(result: { action?: string }): "yes" | "no" | "retry" {
   const action = (result.action ?? "").toLowerCase();
   if (action === "decline") return "no";
   if (action === "cancel") return "retry";
-  if (action === "accept" || action === "accepted") {
-    return result.content?.confirm === false ? "no" : "yes";
-  }
-  if (result.content?.confirm === true) return "yes";
-  if (result.content?.confirm === false) return "no";
+  if (action === "accept" || action === "accepted") return "yes";
   return "retry";
 }
 

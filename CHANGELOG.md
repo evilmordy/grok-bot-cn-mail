@@ -14,6 +14,7 @@
 - 解绑邮箱：`unbind_mailbox` + 确认卡；不删服务器邮件。Grok Bot 还需在密钥框删变量并重载；本机可改 `.env` 或 `config unbind`。
 - 更新：`get_settings.server.needs_restart` 表示磁盘上的脚本已变，停再开 qqconnect，不要当邮箱故障排查。
 - 发信确认卡：Accept 即确认（不必再勾 confirm）；宿主 cancel 时改走 inputRequired，避免 Grok Bot 秒取消。
+- 确认卡去掉 confirm 勾选：Grok 未勾选会提交 `confirm: false`，点 Accept 仍被当成取消。
 
 ## 0.1.0
 
