@@ -54,7 +54,7 @@ grok mcp doctor qqconnect
 
 解绑：对 Bot 说「解绑 mail163」，它应调用 `unbind_mailbox`。Grok Bot 若看不到确认卡，请用本机 `config unbind`。确认后本进程会摘掉这个号；Grok Bot 还要在密钥框删掉对应变量并重载。**不会删除服务器上的邮件。**
 
-**Grok Bot 不能 SMTP 发信：** 它没有 MCP Accept/Decline 卡，「始终允许」不是发信确认。请 `save_draft` 后在网页发送，或用 Grok Build TUI。
+**Grok Bot 发信：** 先 `send_email` 拿到预览，把 To/主题/正文贴给你问润色还是直接发；你说直接发后再带 `confirm_token` 调一次才会 SMTP。「始终允许」不是发信确认。
 
 ## 测试
 

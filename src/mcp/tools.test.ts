@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { overrideSettingsForTest } from "../config/settings.js";
 import { FakeMailBackend } from "../mail/fake.js";
+import { resetPendingSendsForTest } from "./pending-send.js";
 import { registerMailTools, toolSchemas, type ToolExtra } from "./tools.js";
 
 function backend() {
@@ -93,6 +94,7 @@ const yes: ToolExtra = {
 
 afterEach(() => {
   overrideSettingsForTest(null);
+  resetPendingSendsForTest();
 });
 
 describe("tool schemas", () => {
@@ -198,7 +200,13 @@ describe("registerMailTools", () => {
       allow_sensitive: false,
     });
     const calls = collect();
-    const sent = (await calls.get("send_draft")!({ account_id: "qq", uid: 10 }, yes)) as {
+    const preview = (await calls.get("send_draft")!({ account_id: "qq", uid: 10 })) as {
+      isError?: boolean;
+      content: Array<{ text: string }>;
+    };
+    expect(preview.isError).toBeFalsy();
+    const token = JSON.parse(preview.content[0].text).confirm_token as string;
+    const sent = (await calls.get("send_draft")!({ confirm_token: token })) as {
       isError?: boolean;
       content: Array<{ text: string }>;
     };
@@ -206,80 +214,42 @@ describe("registerMailTools", () => {
     expect(JSON.parse(sent.content[0].text).to).toEqual(["boss@example.com"]);
   });
 
-  it("explains Grok Bot has no MCP card when the host declines elicitation", async () => {
+  it("previews send_email then sends only after confirm_token", async () => {
     overrideSettingsForTest({
       mode: "send",
       send_allowlist: ["you@qq.com"],
       allow_sensitive: false,
     });
     const calls = collect();
-    const denied = (await calls.get("send_email")!(
-      { account_id: "qq", to: "you@qq.com", subject: "hi", body: "hello" },
-      { inputResponses: { confirm: { action: "decline" } } },
-    )) as { isError?: boolean; content: Array<{ text: string }> };
-    expect(denied.isError).toBe(true);
-    expect(denied.content[0].text).toMatch(/CONFIRMATION_UNSUPPORTED/);
-    expect(denied.content[0].text).toMatch(/Auto-review/);
-    expect(denied.content[0].text).not.toMatch(/^send cancelled/);
-  });
+    const first = (await calls.get("send_email")!({
+      account_id: "qq",
+      to: "you@qq.com",
+      subject: "hi",
+      body: "hello",
+    })) as { isError?: boolean; content: Array<{ text: string }> };
+    expect(first.isError).toBeFalsy();
+    const pending = JSON.parse(first.content[0].text);
+    expect(pending.pending).toBe(true);
+    expect(pending.confirm_token).toMatch(/^[0-9a-f]+$/);
+    expect(pending.to).toEqual(["you@qq.com"]);
 
-  it("returns input_required on the first send hop instead of send cancelled", async () => {
-    overrideSettingsForTest({
-      mode: "send",
-      send_allowlist: ["you@qq.com"],
-      allow_sensitive: false,
-    });
-    const calls = collect();
-    const r = (await calls.get("send_email")!(
-      { account_id: "qq", to: "you@qq.com", subject: "hi", body: "hello" },
-      {},
-    )) as { resultType?: string; isError?: boolean };
-    expect(r.isError).toBeFalsy();
-    expect(r.resultType).toBe("input_required");
-  });
+    const reused = (await calls.get("send_email")!({
+      confirm_token: "deadbeef",
+    })) as { isError?: boolean; content: Array<{ text: string }> };
+    expect(reused.isError).toBe(true);
 
-  it("treats elicitation Accept as confirmation even without confirm:true", async () => {
-    overrideSettingsForTest({
-      mode: "send",
-      send_allowlist: ["you@qq.com"],
-      allow_sensitive: false,
-    });
-    const calls = collect();
-    const sent = (await calls.get("send_email")!(
-      { account_id: "qq", to: "you@qq.com", subject: "hi", body: "hello" },
-      { inputResponses: { confirm: { action: "accept", content: {} } } },
-    )) as { isError?: boolean; content: Array<{ text: string }> };
+    const sent = (await calls.get("send_email")!({ confirm_token: pending.confirm_token })) as {
+      isError?: boolean;
+      content: Array<{ text: string }>;
+    };
     expect(sent.isError).toBeFalsy();
     expect(JSON.parse(sent.content[0].text).to).toEqual(["you@qq.com"]);
-  });
+    expect(JSON.parse(sent.content[0].text).pending).toBeUndefined();
 
-  it("sends on Accept even if the form still has confirm:false", async () => {
-    overrideSettingsForTest({
-      mode: "send",
-      send_allowlist: ["you@qq.com"],
-      allow_sensitive: false,
-    });
-    const calls = collect();
-    const sent = (await calls.get("send_email")!(
-      { account_id: "qq", to: "you@qq.com", subject: "hi", body: "hello" },
-      { inputResponses: { confirm: { action: "accept", content: { confirm: false } } } },
-    )) as { isError?: boolean; content: Array<{ text: string }> };
-    expect(sent.isError).toBeFalsy();
-    expect(JSON.parse(sent.content[0].text).to).toEqual(["you@qq.com"]);
-  });
-
-  it("sends after mode send, allowlist, and elicitation", async () => {
-    overrideSettingsForTest({
-      mode: "send",
-      send_allowlist: ["you@qq.com", "boss@example.com"],
-      allow_sensitive: false,
-    });
-    const calls = collect();
-    const sent = (await calls.get("send_email")!(
-      { account_id: "qq", to: "you@qq.com", subject: "hi", body: "hello" },
-      yes,
-    )) as { content: Array<{ text: string }> };
-    expect(JSON.parse(sent.content[0].text).to).toEqual(["you@qq.com"]);
+    const again = (await calls.get("send_email")!({ confirm_token: pending.confirm_token })) as {
+      isError?: boolean;
+    };
+    expect(again.isError).toBe(true);
   });
 
   it("refuses attachments when the body looks like OTP even if the subject does not", async () => {
@@ -326,16 +296,25 @@ describe("registerMailTools", () => {
     });
     const calls = collect();
     for (let i = 0; i < 5; i++) {
-      const r = (await calls.get("send_email")!(
-        { account_id: "qq", to: "you@qq.com", subject: `n${i}`, body: "x" },
-        yes,
-      )) as { isError?: boolean };
+      const preview = (await calls.get("send_email")!({
+        account_id: "qq",
+        to: "you@qq.com",
+        subject: `n${i}`,
+        body: "x",
+      })) as { content: Array<{ text: string }> };
+      const token = JSON.parse(preview.content[0].text).confirm_token as string;
+      const r = (await calls.get("send_email")!({ confirm_token: token })) as { isError?: boolean };
       expect(r.isError).toBeFalsy();
     }
-    const sixth = (await calls.get("send_email")!(
-      { account_id: "qq", to: "you@qq.com", subject: "n5", body: "x" },
-      yes,
-    )) as { isError?: boolean; content: Array<{ text: string }> };
+    const sixthPreview = (await calls.get("send_email")!({
+      account_id: "qq",
+      to: "you@qq.com",
+      subject: "n5",
+      body: "x",
+    })) as { content: Array<{ text: string }> };
+    const sixth = (await calls.get("send_email")!({
+      confirm_token: JSON.parse(sixthPreview.content[0].text).confirm_token,
+    })) as { isError?: boolean; content: Array<{ text: string }> };
     expect(sixth.isError).toBe(true);
     expect(sixth.content[0].text).toMatch(/rate limit/);
   });

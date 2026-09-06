@@ -17,6 +17,7 @@
 - 确认卡去掉 confirm 勾选：Grok 未勾选会提交 `confirm: false`，点 Accept 仍被当成取消。
 - 发信确认改为 `inputRequired`，不再在工具里嵌套 `elicitInput`。Grok Bot 的「始终允许」是 Auto-review，嵌套 elicitation 会被 Decline。
 - Grok Bot 无 MCP 确认卡时明确报 `CONFIRMATION_UNSUPPORTED`，引导草稿+网页发送，不再假装用户点了取消。
+- 发信改为两步：先预览 + `confirm_token`，用户在对话里同意后再带 token 才 SMTP。不依赖 Grok Bot 弹不出的 MCP 卡。
 
 ## 0.1.0
 

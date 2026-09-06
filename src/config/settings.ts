@@ -143,5 +143,5 @@ export function settingsGuide(settings: Settings = getSettings()): string {
   if (settings.mode === "draft") {
     return "当前是草稿档：可以 save_draft / save_reply_draft。真发信需用户再要求打开发送并给出白名单。";
   }
-  return "当前是发送档：收件人必须在 send_allowlist 内。SMTP 还要 MCP 确认卡。Grok Bot 弹不出这张卡，请改用草稿+网页发送，或到 Grok Build TUI 发。此设置对账号下所有 Bot 生效。";
+  return "当前是发送档：收件人必须在 send_allowlist 内。发信先出预览和 confirm_token，用户在对话里同意后再带 token 发送。「始终允许」不是发信确认。此设置对账号下所有 Bot 生效。";
 }
